@@ -9,7 +9,7 @@ from tqdm import tqdm
 # Function to decode the chromosome into audio and save it to a wave file
 def decode(chromosome, filename):
     # Enlarge the chromosome to add more waves to each bin
-    enlargedChromosome = enlarge_chromosome(chromosome, waves_per_bin=20, min_frequency=20.0, max_frequency=20020.0)
+    enlargedChromosome = enlarge_chromosome(chromosome, waves_per_bin=3, min_frequency=400, max_frequency=7000)
 
     # Record the start time for execution
     start = time.time()
@@ -32,8 +32,8 @@ def decode(chromosome, filename):
             for bin_idx, bin in enumerate(frame):
                 for i, wave in enumerate(bin):
                     amplitude = wave[0]
-                    phase = wave[1]
-                    frequency = wave[2]
+                    phase = 0.0
+                    frequency = wave[1]
                     bin_samples = generate_bin_samples(amplitude, phase, frequency, frame_duration, frames_per_sec, waves_per_bin)
                     segment_start = frame_idx * int(frame_duration * frames_per_sec)
                     segment_end = (frame_idx + 1) * int(frame_duration * frames_per_sec)

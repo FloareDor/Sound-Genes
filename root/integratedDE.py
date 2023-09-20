@@ -37,7 +37,7 @@ Cl= 100
 # Chromosome Length
 # This is the number of Time Frames in a single song
 
-Gl= 50
+Gl= 1
 # Gene Length
 # This is the number of frequency Bins in a single Time Frame
 
@@ -93,7 +93,7 @@ def chrm():
         L.append([])
         
         for j in range(Gl):
-            L[i].append([rd.uniform(0,A), rd.uniform(0,360)])
+            L[i].append([rd.uniform(0,A), rd.uniform(20,2000)])
     
     return L
 
@@ -215,7 +215,7 @@ def poprun(Inp):
                 if (Tri[j][k][0]> A or Tri[j][k][0]<0):
                     Temp= 1
                     
-                if (Tri[j][k][1]>360 or Tri[j][k][1]<0):
+                if (Tri[j][k][1]>16000 or Tri[j][k][1]<0):
                     Temp= 1
 
                 if Temp==1:
@@ -238,7 +238,7 @@ def poprun(Inp):
 
                     Tri[j][k][0]=Pop[i][j][k][0]
                     
-                if (Tri[j][k][1]>360 or Tri[j][k][1]<0):
+                if (Tri[j][k][1]>16000 or Tri[j][k][1]<0):
 
                     Tri[j][k][1]=Pop[i][j][k][1]
 
