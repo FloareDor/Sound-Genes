@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 # This is used for plotting purposes
 
-from chromosome_processor import decode
+from chr_to_wav import decode
 # This is the function that converts chromosomes to wav files.
 
 from driver import computeFitnessValues
@@ -36,11 +36,17 @@ Fr=[0.5]
 
 # Comment by Arya added 07092023. It may be advisable to reduce K to 0.5 and range of Fr to 1 instead of 2. 
 
-Ps= 120
+Ps= 10
 # Population Size
 
-Gs= 300
+Gs= 10
 # Generation Size
+
+Frlen=0.2
+# Frame Length
+# This is the time in seconds for which a frame lasts
+
+### Important: Frlen*Cl=60 must always hold
 
 Cl= 300
 # Frames per audio sample
@@ -60,14 +66,14 @@ Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 1
+Ch= 5
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
-minFrequency = 200
+minFrequency = 0
 # minimum frequency per frame
 
-maxFrequency = 17000
+maxFrequency = 8000
 # maximum frequency per frame
 
 
@@ -94,7 +100,9 @@ def fitnessFunction(Inp):
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
     chromosome_copy = deepcopy(chromosome)
 
-    decode(chromosome_copy, index=index,bins_per_frame=Gl, waves_per_bin=Wpb, generation = generation, minFrequency=minFrequency, maxFrequency=maxFrequency)
+    Samplingrate=round(16000/Frlen)
+
+    decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalframes=Samplingrate*60, samplerate=Samplingrate)
 
     values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
@@ -123,7 +131,7 @@ def P():
 
                 sum+= abs(Pop[i][j][k][1]-Pop[i][j][k+1][1])
 
-    return 100*float(sum)/(180*Cl*Gl*Ps)
+    return 100*float(sum)/(3.141*Cl*Gl*Ps)
 
 def chrm():
 # Random Chromosome Generator
@@ -135,7 +143,7 @@ def chrm():
         L.append([])
         
         for j in range(Gl):
-            L[i].append([rd.uniform(0,A), rd.uniform(0,360)])
+            L[i].append([rd.uniform(0,A), rd.uniform(0, 6.282)])
     
     return L
 
@@ -261,7 +269,7 @@ def poprun(Inp):
                 if (Tri[j][k][0]> A or Tri[j][k][0]<0):
                     Temp= 1
                     
-                if (Tri[j][k][1]>360 or Tri[j][k][1]<0):
+                if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
                     Temp= 1
 
                 if Temp==1:
@@ -284,7 +292,7 @@ def poprun(Inp):
 
                     Tri[j][k][0]=Pop[i][j][k][0]
                     
-                if (Tri[j][k][1]>360 or Tri[j][k][1]<0):
+                if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
 
                     Tri[j][k][1]=Pop[i][j][k][1]
 
@@ -367,6 +375,7 @@ def main():
 
     while Gc<=Gs:
         Gc+=1
+
     # Run the while loop Gs times
     # This imitates Gs Generations of Evolution
 
