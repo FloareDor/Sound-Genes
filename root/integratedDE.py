@@ -102,7 +102,7 @@ def fitnessFunction(Inp):
 
     Samplingrate=round(16000/Frlen)
 
-    decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalframes=Samplingrate*60, samplerate=Samplingrate)
+    decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Samplingrate*60, samplerate=Samplingrate)
 
     values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
