@@ -4,20 +4,8 @@ import random as rd
 from copy import deepcopy
 # This is a crucial library used to create perfect copies of chromosomes
 
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
-# This is used for plotting purposes
 
-from chr_to_wav import decode
-# This is the function that converts chromosomes to wav files.
-
-from driver import computeFitnessValues
-# This is the fitness function that utilizes 5 features from set A and another 5 from set B
-
-import os
-# This library is used to create/check folders/directories
-
+### HYPERPARAMETERS
 
 A=10
 # Amplitude
@@ -25,44 +13,32 @@ A=10
 
 Cp=0.8
 # Crossover Probability
-# This is the amount of crossover between the original vector and the mutant vector 
-    # and is used to create the trial vector
+# This is the amount of crossover between the original vector and the mutant
+    # vector used to create the trial vector
 
-K=0.8
+K=0.5
 # Coefficient used to generate the mutant vector
 
-Fr=[0.5]
+Fr=[1]
 # Coefficient used to generate the mutant vector
 
-# Comment by Arya added 07092023. It may be advisable to reduce K to 0.5 and range of Fr to 1 instead of 2. 
+Gc= 10
+# Hyperparameter used for cyclical variation in local mutation
+# Must not be 0
 
-Ps= 10
+
+### EVOLUTION PARAMETERS
+
+Ps= 20
 # Population Size
 
-Gs= 10
+Gs= 50
 # Generation Size
 
-Frlen=0.2
-# Frame Length
-# This is the time in seconds for which a frame lasts
 
-### Important: Frlen*Cl=60 must always hold
+### MULTIPROCESSING ARGUMENTS
 
-Cl= 300
-# Frames per audio sample
-# Chromosome Length
-# This is the number of Time Frames in a single song
-
-Gl= 50
-# Bins per frame
-# Gene Length
-# This is the number of frequency Bins in a single Time Frame
-
-Wpb= 20
-# Waves per bin
-# This is the number of waves in a single Bin
-
-Pc= 5
+Pc= 3
 # Number of processes
 # This is the number of cores this code should parallely run on
 
@@ -70,14 +46,44 @@ Ch= 2
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
-minFrequency = 0
+
+### MUSIC PARAMETERS
+
+Cl= 300
+# Chromosome Length
+# Frames per audio sample
+# This is the number of Time Frames in a single song
+
+Gl= 50
+# Gene Length
+# Bins per frame
+# This is the number of frequency Bins in a single Time Frame
+
+Wpb= 20
+# Waves per bin
+# This is the number of waves in a single Bin
+
+
+Frl=0.2
+# Frame Length
+# This is the time in seconds for which a frame lasts
+# IMPORTANT: Frlen*Cl=60 must always hold
+
+Minfrq = 0
 # minimum frequency per frame
 
-maxFrequency = 8000
+Maxfrq = 8000
 # maximum frequency per frame
 
+Srate=round(16000/Frl)
+# Sampling Rate 
+# The provided formula makes it so that in every frame the song is sampled 16000 
+    # times. (In my opinion this does not work and it should just be 16000)
 
-# The original fitness function (integrated)
+
+
+### FITNESS AND VALIDATION
+
 def fitnessFunction(Inp):
     """
     Calculate fitness value for a given chromosome.
@@ -92,6 +98,13 @@ def fitnessFunction(Inp):
         float: The fitness value.
     """
 
+    from chr_to_wav import decode
+    # This is the function that converts chromosomes to wav files.
+
+    from driver import computeFitnessValues
+    # This is the fitness function that utilizes 5 features from set A and another 5 from set B
+
+
     chromosome=Inp[0]
     index=Inp[1]
     generation=Inp[2]
@@ -100,17 +113,17 @@ def fitnessFunction(Inp):
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
     chromosome_copy = deepcopy(chromosome)
 
-    Samplingrate=round(16000/Frlen)
+    for j in range(Cl):
+        for k in range(Gl):
+            chromosome_copy[j][k].append(chromosome_copy[0][k][1])
 
-    #### COMMENT BY ISHAAN: This is the function used to create the wav files
-    decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Samplingrate*60, samplerate=Samplingrate)
+    decode(chromosome_copy, index=index, generation=generation, minfrq=Minfrq, maxfrq=Maxfrq, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Srate*60, samplerate=Srate)
 
-    #### This is the function that returns fitness for the chromosome (computeFitnessValues)
     values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
-    #### The below line is just a conversion to a float
     fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
     return fitnessValue
+
 
 def Q():
     
@@ -124,6 +137,7 @@ def Q():
 
     return 100*float(sum)/(A/2*Cl*Gl*Ps)
 
+
 def P():
     
     sum=0
@@ -132,9 +146,13 @@ def P():
         for j in range(Cl):
             for k in range(Gl-1):
 
-                sum+= abs(Pop[i][j][k][1]-Pop[i][j][k+1][1])
+                if j==0:
+                    sum+= abs(Pop[i][j][k][1]-Pop[i][j][k+1][1])
 
-    return 100*float(sum)/(3.141*Cl*Gl*Ps)
+    return 100*float(sum)/(3.141*(Gl-1)*Ps)
+
+
+### ASSISTING FUNCTIONS
 
 def chrm():
 # Random Chromosome Generator
@@ -146,7 +164,11 @@ def chrm():
         L.append([])
         
         for j in range(Gl):
-            L[i].append([rd.uniform(0,A), rd.uniform(0, 6.282)])
+
+            if i==0:
+                L[i].append([rd.uniform(0,A), rd.uniform(0,6.282)])
+            else:
+                L[i].append([rd.uniform(0,A)])
     
     return L
 
@@ -200,47 +222,55 @@ def fittest():
     return Fiti, Bf
 
 
+### CORE FUNCTIONS
+
 def poprun(Inp):
-    
+
+
     i=Inp[0]
     # 1) This is the index of the chromosome this call must work on
-    Pop= Inp[1]
-    # 2) This is the population dictionary that contains all chromosomes
-    X=Inp[2][0][0]
-    # 3) This is the fittest chromosome from the previous generation
-       # It is used for Global search (Minimal additional cost)
+    Gn = Inp[1][0]
+    # 2) Generation Number
+        # This is used in the fitness function
+    Pop= Inp[2]
+    # 3) This is the population dictionary that contains all chromosomes
     Fiti=Inp[3][i]
     # 4) This is the fitness of the current chromosome
        # It is not evaluated natively to reduce number of fitness function evaluations
-    Gc = Inp[4][0]
-    # 5) Generation Number
-        # This is used in the fitness function
+    X=Inp[4][0][0]
+    # 5) This is the fittest chromosome from the previous generation
+       # It is used for Global search (Minimal additional cost)
+   
 
-    for z in range(0,10):
-    # z is the maximum number of times the chromosome should be revaluated if it is out of bounds
+    for _ in range(10):
+    # This is the maximum number of times the chromosome should be revaluated if it is out of bounds
 
         Mut=deepcopy(Pop[i])
         # Mutant Vector
-        # This is the Mutant Vector of population member index i
+        # Mut is the Mutant Vector of population member index i
         # Initiate it as a random chromosome
 
         F=rd.uniform(-Fr[0], Fr[0])
         # Coefficient used to generate the mutant vector
 
         while(1):
-            
+        
             y,z= rd.sample(range(Ps),2)
 
             if(y!=i and z!=i and y!=X and z!=X):
                 break
-            
+        
         # The above are used to choose population vectors to mutate the original 
             # vector with
-        
+    
         for j in range(Cl):
             for k in range(Gl):
-                for l in range(2):
-                    Mut[j][k][l]= Mut[j][k][l]+K*(Pop[X][j][k][l]-Pop[i][j][k][l])+F*(Pop[y][j][k][l]-Pop[z][j][k][l])
+
+                if j==0:
+                    for l in range(2):
+                        Mut[j][k][l]= Mut[j][k][l]+K*(Pop[X][j][k][l]-Pop[i][j][k][l])+F*(Pop[y][j][k][l]-Pop[z][j][k][l])
+                else:
+                    Mut[j][k][0]= Mut[j][k][0]+K*(Pop[X][j][k][0]-Pop[i][j][k][0])+F*(Pop[y][j][k][0]-Pop[z][j][k][0])
 
                     # The above is a direct formula used to create mutant vectors in DE
 
@@ -253,10 +283,16 @@ def poprun(Inp):
 
         for j in range(Cl):
             for k in range(Gl):
-                for l in range(2):
+
+                if j==0:
+                    for l in range(2):
+                        if (rd.uniform(0,1)> Cp):
+                            Tri[j][k][l]= Pop[i][j][k][l]
+
+                else:
                     if (rd.uniform(0,1)> Cp):
-                        Tri[j][k][l]= Pop[i][j][k][l]
-                    
+                        Tri[j][k][0]= Pop[i][j][k][0]
+
                     # Here as the Tri is the same as Mut initially, elements of Tri
                         # are restored to the value of L with a probability of 1-Cp
 
@@ -272,8 +308,9 @@ def poprun(Inp):
                 if (Tri[j][k][0]> A or Tri[j][k][0]<0):
                     Temp= 1
                     
-                if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
-                    Temp= 1
+                if j==0:
+                    if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
+                        Temp= 1
 
                 if Temp==1:
                     break
@@ -286,7 +323,8 @@ def poprun(Inp):
 
         # If none of the constraints are violated (Temp==0) then break, else revaluate
             # from the mutation vector
-        
+
+
     if Temp!=0:
         for j in range(Cl):
             for k in range(Gl):
@@ -295,24 +333,118 @@ def poprun(Inp):
 
                     Tri[j][k][0]=Pop[i][j][k][0]
                     
-                if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
+                if j==0:
+                    if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
 
-                    Tri[j][k][1]=Pop[i][j][k][1]
+                        Tri[j][k][1]=Pop[i][j][k][1]
 
-    # If a component of the Trial Vector is Violating a constraint, replace that 
-        # component with that of the population member
+    # If a component of the Trial Vector is Violating a constraint, replace
+        # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gc])
-    # Temp is used here to reduce the number of fitness function calls
+    Temp=fitnessFunction([Tri, i, Gn])
 
     if(Temp<Fiti):
         return [Tri, Temp]
         # If successful, return the child chromosome as well as it's fitness
-        
+
+    else:
+        return 0
+        # If failure, return 0
+ 
+
+def loccro(Inp):
+
+
+    i=Inp[0]
+    Gn=Inp[1][0]
+    Pop=Inp[2]
+    # Fiti requires the arguments from Inp[4]
+    Ind1=Inp[4][i]
+    Ind2=Inp[4][i+1]
+
+    Fiti=Inp[3][Ind2]
+
+
+    Cro=deepcopy(Pop[Ind1])
+
+    R=rd.uniform(0,1)
+
+    for j in range(Cl):
+        for k in range(Gl):
+            
+            if j==0:
+                for l in range(2):
+                    Cro[j][k][l]= Cro[j][k][l]+R*(Pop[Ind2][j][k][l]-Cro[j][k][l])
+            
+            else:
+                Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
+
+
+    Temp=fitnessFunction([Cro, i, Gn])
+
+    if(Temp<Fiti):
+        return [Cro, Temp]
+        # If successful, return the child chromosome as well as it's fitness
+
+    else:
+        return 0
+        # If failure, return 0
+
+
+def locmut(Inp):
+
+    import numpy as np
+
+
+    i=Inp[0]
+    Gn=Inp[1][0]
+    Gc=Inp[1][1]
+    Pop=Inp[2]
+    Fiti=Inp[3][i]
+    Min=Inp[4][0]
+    Max=Inp[4][1]
+    Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
+
+
+    Mut=deepcopy(Pop[i])
+
+    Cyc=np.exp(-2*Gn/Gc)* 1/(1+np.exp(-1*((Gc/2)-Gn)))
+
+    for j in range(Cl):
+        for k in range(Gl):
+            
+            R=rd.uniform(0,1)
+
+            if j==0:
+                for l in range(2):
+                
+                    x=rd.randint(0,1)
+
+                    if x==0:
+                        Mut[j][k][l]= Mut[j][k][l]+R*Cyc*Pm*(Max[j][k][l]-Mut[j][k][l])
+                    else:
+                        Mut[j][k][l]= Mut[j][k][l]+R*Cyc*Pm*(Min[j][k][l]-Mut[j][k][l])
+            
+            else:
+                x=rd.randint(0,1)
+
+                if x==0:
+                    Mut[j][k][0]= Mut[j][k][0]+R*Cyc*Pm*(Max[j][k][0]-Mut[j][k][0])
+                else:
+                    Mut[j][k][0]= Mut[j][k][0]+R*Cyc*Pm*(Min[j][k][0]-Mut[j][k][0])
+
+
+    Temp=fitnessFunction([Mut, i, Gn])
+
+    if(Temp<Fiti):
+        return [Mut, Temp]
+        # If successful, return the child chromosome as well as it's fitness
+
     else:
         return 0
         # If failure, return 0
     
+
 
 def main():
 
@@ -321,6 +453,12 @@ def main():
 
     import time
     # This is simply used to calculate the total execution time of the code
+
+    import matplotlib
+    matplotlib.use('Agg')
+    from matplotlib import pyplot as plt
+    # This is used for plotting purposes
+
 
     Start= time.time()
 
@@ -361,28 +499,32 @@ def main():
     popinit()
     # Initiate and store the Population Dictionary
 
-    Gc=1
-    # Generation Counter
-    # Counts up the generations
+    Gn=1
+    # Generation Number
+    # Counts down the generations
+
 
     Best=[fittest()]
-    # Used in Input 1  
-    
-    Gcl=[Gc]
-    # A list containing Gc used for Input 1
+    Gen=[Gn,Gc]
+    Inp1=[[i, Gen, Pop, Fitness, Best] for i in range(0, Ps)]
 
-    Inp1=[[i, Pop, Best, Fitness, Gcl] for i in range(0, Ps)]
-    # Input 1
-    # This input is repeatedly used to send to the parallely processed function
-    # The inner components will be explained further in the function itself
+    Ind=[i for i in range(0, Ps)]
+    Indsort=deepcopy(Ind)
+    Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps-1)]
 
-    while Gc<=Gs:
-        Gc+=1
+    Min=deepcopy(Pop[0])
+    Max=deepcopy(Pop[0])
+    Pm=[0]*Ps
+    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm]] for i in range(0, Ps)]
+
+
+    while Gn<=Gs:
+        Gn=Gn+1
 
     # Run the while loop Gs times
     # This imitates Gs Generations of Evolution
 
-        # Fr[0]=Fr[0]/1.01
+        #Fr[0]=Fr[0]/1.01
         # The above line of code can be used to change the value of F progressively
 
         with Pool(processes= Pc) as pool:
@@ -409,18 +551,73 @@ def main():
                 Temp=Temp+1
 
             # If the Trial Vector is fitter than the population member, replace
-                # the population member with the trial vector for the next generation,  
-                # else do nothing
-    
+                # the population member with the trial vector for the next 
+                # generation, else do nothing
+
+
+            Junk,Temp=zip(*sorted(zip(Fitness, Ind)))
+            # Sorted in descending order as lower fitness is better
+
+            for i in range(0, Ps):
+                Indsort[i]=Temp[i]
+                # The above step is crucial so that Indsort in Inp2 does not get changed
+
+                Pm[Temp[i]]=i
+
+
+            result = pool.map_async(loccro, Inp2, chunksize=Ch)
+
+            Temp=0
+            for Out in result.get():
+
+                if Out!=0:
+                    Pop[Indsort[Temp]]=Out[0]
+                    Fitness[Indsort[Temp]]=Out[1]
+                    
+                Temp=Temp+1
+
+
+            for i in range(Ps):
+                for j in range(Cl):
+                    for k in range(Gl):
+
+                        if j==0:
+                            for l in range(2):
+                                if (Pop[i][j][k][l]<Min[j][k][l]):
+                                    Min[j][k][l]= Pop[i][j][k][l]
+                        
+                                elif(Pop[i][j][k][l]>Max[j][k][l]):
+                                    Max[j][k][l]= Pop[i][j][k][l]
+
+                        else:
+                            if (Pop[i][j][k][0]<Min[j][k][0]):
+                                Min[j][k][0]= Pop[i][j][k][0]
+                        
+                            elif(Pop[i][j][k][0]>Max[j][k][0]):
+                                Max[j][k][0]= Pop[i][j][k][0]
+
+
+            result = pool.map_async(locmut, Inp3, chunksize=Ch)
+
+            Temp=0
+            for Out in result.get():
+
+                if Out!=0:
+                    Pop[Temp]=Out[0]
+                    Fitness[Temp]=Out[1]
+                    
+                Temp=Temp+1
+
+
         Best[0]=fittest()
-        Gcl[0]=Gc
+        Gen[0]=Gn
 
         Afit.append(sum(Fitness)/float(Ps))
         Bfit.append(Best[0][1])
         Qval.append(Q())
         Pval.append(P())
 
-        if(Gc%2==0):
+        if(Gn%(Gs//5)==0):
             plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
             plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
             plt.plot(range(0,len(Qval)), Qval, label="Q value")
@@ -430,15 +627,21 @@ def main():
             plt.legend(loc="upper right")
             plt.savefig(f"Graphs/Graph-Ps={Ps}-Gs={Gs}-v1_01.png")
             plt.close()
+        
 
     End= time.time()
 
     print(Bfit[-1], End-Start)
     # Print the error between the Test chromosome and the Final chromosome
 
+
 if __name__ == '__main__':
 
+    import os
+    # This library is used to create/check folders/directories
+
     # creating output directories if they do not exist
+
 
     audioOutputPath = 'audio_output'
     featuresOutputPath = 'features_output'

@@ -35,6 +35,9 @@ def decode(oldL, index, generation, minfrq, maxfrq, Cl, Gl, wavpbin, totalsample
 
         for i,bin in enumerate(frame):
 
+            bin[0]=bin[0]*10000000
+            # Scaling up the amplitude for fft
+
             bin.append(i*jfrq)
             # Adding the bin frequency to the bin
 
@@ -51,7 +54,11 @@ def decode(oldL, index, generation, minfrq, maxfrq, Cl, Gl, wavpbin, totalsample
 
                 for k in range(wavpbin):
                     incr=jfrq/(wavpbin-1)
-                    L[-1].append([x[0],x[1],x[2]+k*incr])
+
+                    if x[2]+k*incr<0:
+                        L[-1].append([x[0],x[1], 0])
+                    else:
+                        L[-1].append([x[0],x[1],x[2]+k*incr])
     
     # Now every bin contains [Amplitude, Phase, Frequency]
 
