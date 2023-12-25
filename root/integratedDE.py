@@ -102,7 +102,6 @@ def fitnessFunction(Inp):
 
     Samplingrate=round(16000/Frlen)
 
-    #### COMMENT BY ISHAAN: This is the function used to create the wav files
     decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Samplingrate*60, samplerate=Samplingrate)
 
     #### This is the function that returns fitness for the chromosome (computeFitnessValues)
