@@ -22,7 +22,7 @@ K=0.5
 Fr=[1]
 # Coefficient used to generate the mutant vector
 
-Gc= 10
+Gc= 50
 # Hyperparameter used for cyclical variation in local mutation
 # Must not be 0
 
@@ -34,6 +34,10 @@ Ps= 5
 
 Gs= 20
 # Generation Size
+
+Lt= Gs//2
+# Local Search Threshold
+# Above this value, the search will incorporate local search as well
 
 
 ### MULTIPROCESSING ARGUMENTS
@@ -404,11 +408,11 @@ def locmut(Inp):
     Min=Inp[4][0]
     Max=Inp[4][1]
     Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
+    Cyc=Inp[4][3]
 
 
     Mut=deepcopy(Pop[i])
 
-    Cyc=np.exp(-2*Gn/Gc)* 1/(1+np.exp(-1*((Gc/2)-Gn)))
 
     for j in range(Cl):
         for k in range(Gl):
@@ -459,6 +463,9 @@ def main():
     from matplotlib import pyplot as plt
     # This is used for plotting purposes
 
+    import numpy as np
+    # This is used for some calculations
+
 
     Start= time.time()
 
@@ -498,8 +505,9 @@ def main():
 
     popinit()
     # Initiate and store the Population Dictionary
+    
 
-    Gn=1
+    Gn=0
     # Generation Number
     # Counts down the generations
 
@@ -515,7 +523,8 @@ def main():
     Min=deepcopy(Pop[0])
     Max=deepcopy(Pop[0])
     Pm=[0]*Ps
-    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm]] for i in range(0, Ps)]
+    Cyc=[0]
+    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
 
 
     while Gn<=Gs:
@@ -526,6 +535,10 @@ def main():
 
         #Fr[0]=Fr[0]/1.01
         # The above line of code can be used to change the value of F progressively
+
+        Gen[0]= Gn
+        Cyc[0]= np.exp(-2*Gn/Gc)* 1/(1+np.exp(-1*((Gc/2)-Gn)))
+
 
         with Pool(processes= Pc) as pool:
         # Create an instance of the pool process and call it "pool"
@@ -554,63 +567,65 @@ def main():
                 # the population member with the trial vector for the next 
                 # generation, else do nothing
 
-
-            Junk,Temp=zip(*sorted(zip(Fitness, Ind)))
-            # Sorted in descending order as lower fitness is better
-
-            for i in range(0, Ps):
-                Indsort[i]=Temp[i]
-                # The above step is crucial so that Indsort in Inp2 does not get changed
-
-                Pm[Temp[i]]=i
+            if Gn>Lt:
+            # If Local Search Threshold is surpassed, perform Local Search as well
 
 
-            result = pool.map_async(loccro, Inp2, chunksize=Ch)
+                Junk,Temp=zip(*sorted(zip(Fitness, Ind)))
+                # Sorted in descending order as lower fitness is better
 
-            Temp=1
-            for Out in result.get():
+                for i in range(0, Ps):
+                    Indsort[i]=Temp[i]
+                    # The above step is crucial so that Indsort in Inp2 does not get changed
 
-                if Out!=0:
-                    Pop[Indsort[Temp]]=Out[0]
-                    Fitness[Indsort[Temp]]=Out[1]
+                    Pm[Temp[i]]=i
+
+
+                result = pool.map_async(loccro, Inp2, chunksize=Ch)
+
+                Temp=1
+                for Out in result.get():
+
+                    if Out!=0:
+                        Pop[Indsort[Temp]]=Out[0]
+                        Fitness[Indsort[Temp]]=Out[1]
                     
-                Temp=Temp+1
+                    Temp=Temp+1
 
 
-            for i in range(Ps):
-                for j in range(Cl):
-                    for k in range(Gl):
+                for i in range(Ps):
+                    for j in range(Cl):
+                        for k in range(Gl):
 
-                        if j==0:
-                            for l in range(2):
-                                if (Pop[i][j][k][l]<Min[j][k][l]):
-                                    Min[j][k][l]= Pop[i][j][k][l]
+                            if j==0:
+                                for l in range(2):
+                                    if (Pop[i][j][k][l]<Min[j][k][l]):
+                                        Min[j][k][l]= Pop[i][j][k][l]
                         
-                                elif(Pop[i][j][k][l]>Max[j][k][l]):
-                                    Max[j][k][l]= Pop[i][j][k][l]
+                                    elif(Pop[i][j][k][l]>Max[j][k][l]):
+                                        Max[j][k][l]= Pop[i][j][k][l]
 
-                        else:
-                            if (Pop[i][j][k][0]<Min[j][k][0]):
-                                Min[j][k][0]= Pop[i][j][k][0]
+                            else:
+                                if (Pop[i][j][k][0]<Min[j][k][0]):
+                                    Min[j][k][0]= Pop[i][j][k][0]
                         
-                            elif(Pop[i][j][k][0]>Max[j][k][0]):
-                                Max[j][k][0]= Pop[i][j][k][0]
+                                elif(Pop[i][j][k][0]>Max[j][k][0]):
+                                    Max[j][k][0]= Pop[i][j][k][0]
 
 
-            result = pool.map_async(locmut, Inp3, chunksize=Ch)
+                result = pool.map_async(locmut, Inp3, chunksize=Ch)
 
-            Temp=0
-            for Out in result.get():
+                Temp=0
+                for Out in result.get():
 
-                if Out!=0:
-                    Pop[Temp]=Out[0]
-                    Fitness[Temp]=Out[1]
+                    if Out!=0:
+                        Pop[Temp]=Out[0]
+                        Fitness[Temp]=Out[1]
                     
-                Temp=Temp+1
+                    Temp=Temp+1
 
 
         Best[0]=fittest()
-        Gen[0]=Gn
 
         Afit.append(sum(Fitness)/float(Ps))
         Bfit.append(Best[0][1])
