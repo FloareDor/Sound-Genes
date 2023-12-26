@@ -29,20 +29,20 @@ Gc= 10
 
 ### EVOLUTION PARAMETERS
 
-Ps= 20
+Ps= 5
 # Population Size
 
-Gs= 50
+Gs= 20
 # Generation Size
 
 
 ### MULTIPROCESSING ARGUMENTS
 
-Pc= 3
+Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 2
+Ch= 1
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
@@ -567,7 +567,7 @@ def main():
 
             result = pool.map_async(loccro, Inp2, chunksize=Ch)
 
-            Temp=0
+            Temp=1
             for Out in result.get():
 
                 if Out!=0:
