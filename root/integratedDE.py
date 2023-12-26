@@ -12,11 +12,13 @@ from matplotlib import pyplot as plt
 from chr_to_wav import decode
 # This is the function that converts chromosomes to wav files.
 
-from driver import computeFitnessValues
+from driver import computeFitnessValues, compute_SOM_DOB
 # This is the fitness function that utilizes 5 features from set A and another 5 from set B
 
 import os
 # This library is used to create/check folders/directories
+
+from som.som_class import SOM
 
 
 A=10
@@ -36,7 +38,7 @@ Fr=[0.5]
 
 # Comment by Arya added 07092023. It may be advisable to reduce K to 0.5 and range of Fr to 1 instead of 2. 
 
-Ps= 10
+Ps= 100
 # Population Size
 
 Gs= 10
@@ -76,6 +78,9 @@ minFrequency = 0
 maxFrequency = 8000
 # maximum frequency per frame
 
+som = SOM()
+# Initialization of Self-Organizing-Map
+
 
 # The original fitness function (integrated)
 def fitnessFunction(Inp):
@@ -104,10 +109,12 @@ def fitnessFunction(Inp):
 
     decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Samplingrate*60, samplerate=Samplingrate)
 
-    #### This is the function that returns fitness for the chromosome (computeFitnessValues)
-    values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
-    #### The below line is just a conversion to a float
-    fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
+    rasaDob = compute_SOM_DOB(SOM=som,audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index)
+    fitnessValue = rasaDob[rasaNumber]
+    print("rasaDOB: ",rasaDob)
+
+    # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
+    # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
     return fitnessValue
 

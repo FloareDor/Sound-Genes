@@ -6,6 +6,10 @@ import os
 import pandas as pd
 from decimal import Decimal, localcontext
 import time
+from Feature_Extractor import extract_features
+from som.som_class import SOM
+
+
 
 # normal distribution function
 def g(x, mean, variance):
@@ -100,7 +104,7 @@ def computeFitnessValues(generation, populationNumber, audioFile="aaramb.wav", r
         os.remove(f'./jAudio/gen{generation}-{populationNumber}FK.xml')
 
         if populationNumber % 25 != 0 and populationNumber != 119:
-            os.remove(f'./audio_output/{audioFile}')
+            # os.remove(f'./audio_output/{audioFile}')
             os.remove(output_filename)
             os.remove(output_filename.replace("_10_", '_all_'))
 
@@ -117,6 +121,17 @@ def computeFitnessValues(generation, populationNumber, audioFile="aaramb.wav", r
     # print(f"Results saved to {output_filename}")
     
     return results
+
+def compute_SOM_DOB(SOM, generation, populationNumber, audioFile="Karuna.wav"):
+    X=extract_features(filename=audioFile)
+
+    print("number of extracted features:", len(X))
+
+    prediction = SOM.predict(X)
+
+    print("prediction: ", prediction)
+
+    return prediction
 
 
 if __name__ == "__main__":
