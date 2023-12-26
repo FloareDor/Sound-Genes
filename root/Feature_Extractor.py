@@ -1,9 +1,12 @@
 import json
 import xml.etree.ElementTree as ET
 import subprocess
+from decimal import Decimal
 import os
+import coreFeatures
+import numpy as np
 
-def extract_features(settings="final_settings.xml", directory="", filename="aaramb.wav", output_filename=None):
+def extract_features(settings="final-104.xml", directory="", filename="aaramb.wav", output_filename=None):
 
     output_folder = "features_output"
     # If no output filename is provided, use the original filename without .wav extension
@@ -43,22 +46,57 @@ def extract_features(settings="final_settings.xml", directory="", filename="aara
 
         # Create a dictionary to store the extracted data
         data = {'data_set_id': root.find('./data_set/data_set_id').text}
+        #data = {"x":Decimal(0.0)}
 
+        somInput = []
         # Iterate through feature elements and extract data
-        features = root.findall('./data_set/feature')
-        for feature in features:
-            feature_name = feature.find('name').text
-            values = [v.text for v in feature.findall('v')]
-            if len(values) == 1:
-                data[feature_name] = values[0]
-            else:
-                data[feature_name] = values
 
+        finalFeatures = [feature for feature in coreFeatures.coreFeatures if feature not in coreFeatures.zero_features]
+        for feature_name in coreFeatures.coreFeatures:
+            feature_element = root.find(f"./data_set/feature[name='{feature_name}']")
+            if feature_element is not None:
+                values = [v.text for v in feature_element.findall('v')]
+                if len(values) == 0:
+                    print(feature_name)
+                    somInput.append(0)
+                    data[feature_name] = 0
+
+                elif len(values) == 1:
+                    if values[0] == "NaN":
+                        print("zero parameter:",feature_name)
+                        values[0] = 0
+                    data[feature_name] = values[0]
+                    somInput.append(float(Decimal(values[0])))
+                    print(type(somInput[0]))
+                else:
+                    print(feature_name)
+                    decimal_array = [float(Decimal(value)) for value in values]
+                    # print(decimal_array)
+                    # print(values)
+                    average_decimal = sum(decimal_array) / len(decimal_array)
+                    somInput.append(average_decimal)
+                    data[feature_name] = average_decimal
+            else:
+                print("error:", feature_name)
+        print(len(somInput))
+                
+
+   
         # Store the extracted data in a JSON file
         json_file = f'{output_folder}/{output_filename}_all_features.json'
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=4)
         # print(f"Data extracted and saved to {json_file}")
+    somInput = np.nan_to_num(somInput, nan=0.0)
+    zeroCount=0
+    for i in range(len(somInput)):
+        if somInput[i] == 0.0:
+            print("zero:", coreFeatures.coreFeatures[i])
+            zeroCount+=1
 
-        return data
-    return None
+    
+    print("zeroCount:", zeroCount)
+    print(somInput)
+
+    print("LENGTH:", len(somInput))
+    return somInput
