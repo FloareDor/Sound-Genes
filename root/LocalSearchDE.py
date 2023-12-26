@@ -63,7 +63,7 @@ Gl= 50
 # Bins per frame
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 20
+Wpb= 160
 # Waves per bin
 # This is the number of waves in a single Bin
 
@@ -397,12 +397,9 @@ def loccro(Inp):
 
 def locmut(Inp):
 
-    import numpy as np
-
 
     i=Inp[0]
     Gn=Inp[1][0]
-    Gc=Inp[1][1]
     Pop=Inp[2]
     Fiti=Inp[3][i]
     Min=Inp[4][0]
