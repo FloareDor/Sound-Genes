@@ -15,20 +15,21 @@ from collections import Counter
 import random
 from som.som_helper import *
 import pickle
+import joblib
 
 class SOM:
     def __init__(self):
-        self.num_rows = 12      
+        self.num_rows = 12     
         self.num_cols = 12
         self.max_m_distance = 4
         self.max_learning_rate = 0.4
         self.max_steps = int(3*10e3)
         self.num_classes = 4
-        self.train_x, self.test_x, self.train_y, self.test_y, self.X_std, self.y = self.loadData()
+        self.train_x, self.test_x, self.train_y, self.test_y, self.X_std, self.X, self.y = self.loadData()
         # print(self.train_x.shape)
         # self.som = self.train(self.X_std, self.train_x, self.test_x, self.train_y, self.test_y)
         # self.label_map = self.labelMap(self.som, self.X_std, self.y, self.train_x, self.train_y, self.num_rows, self.num_cols)
-        # self.test(self.test_x, self.test_y, self.X_std)
+        self.test(self.train_x, self.test_x, self.test_y, self.X_std)
         
 
     def loadData(self):
@@ -46,10 +47,24 @@ class SOM:
         ##### MODIFY HERE BASED ON YOUR DATA COLOUMNS AND LABEL COLUMNS
         #Extract x and y from the dataframe
         X = df_data.iloc[:,0:253].values
+        df_subset = df_data[column_list[:253]]
+        file_path = 'loadingDataCOlumns.txt'
+        numbers = df_subset
+
+        print(len(X[0]))
+
+        # Open the file in write mode
+        with open(file_path, 'w') as file:
+            # Write each number to the file
+            for number in numbers:
+                file.write(str(number) + '\n')
+        
         y = y.values
 
         #Standardize data
-        X_std = StandardScaler().fit_transform(X)
+        Scaler = StandardScaler().fit(X)
+        X_std = Scaler.transform(X)
+        joblib.dump(Scaler, 'scaler.pkl')
 
         # print(X_std.shape)
 
@@ -61,10 +76,13 @@ class SOM:
         # n_pcs= model.components_.shape[0]
 
         train_x, test_x, train_y, test_y = train_test_split(X_std, y, test_size=0.2, random_state=42)
-        return train_x, test_x, train_y, test_y, X_std, y
+        return train_x, test_x, train_y, test_y, X_std, X, y
     
     def train(self, X_std, train_x, test_x, train_y, test_y):
-        X_norm = minmax_scaler(X_std)
+        minmaxScaler = MinMaxScaler().fit(X_std)
+        X_norm = minmaxScaler.transform(X_std)
+        # X_norm = X_std
+        joblib.dump(minmaxScaler, 'minmaxScaler.pkl')
 
         # print(X_norm.shape)
 
@@ -101,7 +119,9 @@ class SOM:
 
     def labelMap(self, som, X_std, y, train_x, train_y, num_rows, num_cols):
         # collecting labels
-        X_norm = minmax_scaler(X_std)
+        minmaxScaler = MinMaxScaler().fit(X_std)
+        X_norm = minmaxScaler.transform(X_std)
+        # X_norm = X_std
         label_data = y
         map = np.empty(shape=(num_rows, num_cols), dtype=object)
 
@@ -141,7 +161,18 @@ class SOM:
         with open('labelMap.pkl', 'rb') as f:
             label_map = pickle.load(f)
         data = minmax_scaler(train_x) # normalisation
-        X_norm = minmax_scaler(X_std)
+        minmaxScaler = MinMaxScaler().fit(X_std)
+        X_norm = minmaxScaler.transform(X_std)
+        # X_norm = X_std
+
+        file_path = 'testing.txt'
+        numbers = X_norm[34]
+
+        # Open the file in write mode
+        with open(file_path, 'w') as file:
+            # Write each number to the file
+            for number in numbers:
+                file.write(str(number) + '\n')
         winner_labels = []
         df = []
         num_classes = 4
@@ -150,7 +181,7 @@ class SOM:
             winner, rasa_df = get_shortest_distances_per_rasa(X_norm, t, som, self.num_rows, self.num_cols, num_classes, label_map)
             # print(winner)
             winner_labels.append(winner)
-            rasa_df["REAL"] = y[t]
+            rasa_df["REAL"] = self.y[t]
             df.append(rasa_df)
 
 
@@ -162,13 +193,13 @@ class SOM:
 
         count=0
         for i in range(len(X_norm)):
-            if y[i] == winner_labels[i]:
+            if self.y[i] == winner_labels[i]:
                 count+=1
-        print(count, "/", len(X_norm))
+        #print(count, "/", len(X_norm))
         print("Accuracy: ",accuracy_score(self.y, np.array(winner_labels)))
 
     def predict(self, X):
-        print(X)
+        #print(X)
         #test_x_norm = minmax_scaler(test_x)
 
         with open('som_model.pkl', 'rb') as f:
@@ -176,21 +207,37 @@ class SOM:
         with open('labelMap.pkl', 'rb') as f:
             label_map = pickle.load(f)
 
-        print("len: ")
-        print(len(self.train_x))
+        loaded_scaler = joblib.load('scaler.pkl')
+        minmaxScaler = joblib.load('minmaxScaler.pkl')
+        # print(X)
+        X = X.reshape(1, -1)
+        X = loaded_scaler.transform(X)
+        X = minmaxScaler.transform(X)
+        # print("standard X:", X)
+
         X_all = np.vstack((self.train_x, X))
-        print("len: ")
-        print(len(X_all))
-        ## Degree of belonging
+        # X_all=X_all[1:]
+
         X_std = StandardScaler().fit_transform(X_all)
-        print("STANDARD:", X_std)
-        test_x_norm = minmax_scaler(X_std)
+        #print("STANDARD:", X_std)
+        test_x_norm = minmax_scaler(X)
+
+        file_path = 'predicting.txt'
+        numbers = X[len(X)-1]
+
+        # Open the file in write mode
+        with open(file_path, 'w') as file:
+            # Write each number to the file
+            for number in numbers:
+                file.write(str(number) + '\n')
+
+        # print("standardized final x:", X)
         lables = []
         ### MODIY NUMBER LABELS ACCORDING TO THE NUMBER OF CLASSES IN YOUR CSV
         num_labels = 4
         # d,_,_ = get_bmu(test_x_norm[len(test_x_norm)-1],som,num_labels,label_map)
-        winner, rasa_df = get_shortest_distances_per_rasa(test_x_norm, len(test_x_norm)-1, som, self.num_rows, self.num_cols, self.num_classes, label_map)
-        print(rasa_df)
+        winner, rasa_df = get_shortest_distances_per_rasa(X, len(X)-1, som, self.num_rows, self.num_cols, self.num_classes, label_map)
+        #print(rasa_df)
         return rasa_df
 
     

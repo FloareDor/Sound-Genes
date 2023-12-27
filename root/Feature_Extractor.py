@@ -5,6 +5,7 @@ from decimal import Decimal
 import os
 import coreFeatures
 import numpy as np
+import math
 
 def extract_features(settings="final-104.xml", directory="", filename="aaramb.wav", output_filename=None):
 
@@ -52,14 +53,25 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
         # Iterate through feature elements and extract data
 
         finalFeatures = [feature for feature in coreFeatures.coreFeatures if feature not in coreFeatures.zero_features]
-        for feature_name in coreFeatures.coreFeatures:
+        features = []
+        file_path = 'loadingDataCOlumns.txt'
+        allCoreFeatures = []
+        # Read the content of the text file and split it into lines
+        with open(file_path, 'r') as file:
+            allCoreFeatures = file.read().splitlines()
+
+        # Now 'content' is a list where each element corresponds to a line in the text file
+        print(allCoreFeatures)
+
+        for feature_name in allCoreFeatures:
             feature_element = root.find(f"./data_set/feature[name='{feature_name}']")
             if feature_element is not None:
                 values = [v.text for v in feature_element.findall('v')]
                 if len(values) == 0:
-                    print(feature_name)
+                    print("no value:",feature_name)
                     somInput.append(0)
                     data[feature_name] = 0
+                    features.append(feature_name)
 
                 elif len(values) == 1:
                     if values[0] == "NaN":
@@ -67,15 +79,17 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
                         values[0] = 0
                     data[feature_name] = values[0]
                     somInput.append(float(Decimal(values[0])))
-                    print(type(somInput[0]))
+                    features.append(feature_name)
                 else:
-                    print(feature_name)
-                    decimal_array = [float(Decimal(value)) for value in values]
-                    # print(decimal_array)
-                    # print(values)
+                    
+                    decimal_array = [float(Decimal(value)) for value in values if not math.isnan(Decimal(value))]
                     average_decimal = sum(decimal_array) / len(decimal_array)
+                    if average_decimal == "nan":
+                        print("zero decimal:",feature_name)
+                    print("multiple values:",average_decimal, feature_name, type(average_decimal))
                     somInput.append(average_decimal)
                     data[feature_name] = average_decimal
+                    features.append(feature_name)
             else:
                 print("error:", feature_name)
         print(len(somInput))
@@ -94,9 +108,18 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
             print("zero:", coreFeatures.coreFeatures[i])
             zeroCount+=1
 
+    file_path = 'predictingDataColumns.txt'
+    numbers = features
+
+    # Open the file in write mode
+    with open(file_path, 'w') as file:
+        # Write each number to the file
+        for number in numbers:
+            file.write(str(number) + '\n')
+
     
     print("zeroCount:", zeroCount)
-    print(somInput)
+    # print(somInput)
 
     print("LENGTH:", len(somInput))
     return somInput
