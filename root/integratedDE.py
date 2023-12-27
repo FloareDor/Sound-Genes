@@ -107,7 +107,7 @@ def fitnessFunction(Inp):
 
     Samplingrate=round(16000/Frlen)
 
-    decode(chromosome_copy, index=index, generation=generation, minfrq=0, maxfrq=maxFrequency, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Samplingrate*60, samplerate=Samplingrate)
+    decode(chromosome_copy, index=index, generation=generation, Minfrq=0, Maxfrq=maxFrequency, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Samplingrate*60, Srate=Samplingrate)
 
     rasaDob = compute_SOM_DOB(SOM=som,audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index)
     fitnessValue = rasaDob[rasaNumber]

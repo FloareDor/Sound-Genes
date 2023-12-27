@@ -121,7 +121,7 @@ def fitnessFunction(Inp):
         for k in range(Gl):
             chromosome_copy[j][k].append(chromosome_copy[0][k][1])
 
-    decode(chromosome_copy, index=index, generation=generation, minfrq=Minfrq, maxfrq=Maxfrq, Cl=Cl, Gl=Gl, wavpbin=Wpb, totalsamples=Srate*60, samplerate=Srate)
+    decode(chromosome_copy, index=index, generation=generation, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Srate*60, Srate=Srate)
 
     values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
