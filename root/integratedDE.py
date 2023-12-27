@@ -440,6 +440,13 @@ def main():
     End= time.time()
 
     print(Bfit[-1], End-Start)
+
+    with open("Q_values.txt","w") as f:
+
+        for i in range(len(Qval)):
+            print(Afit[i], file=f, end=",")
+            print(Bfit[i], file=f, end=",")
+            print(Qval[i], file=f, end="\n")
     # Print the error between the Test chromosome and the Final chromosome
 
 if __name__ == '__main__':
