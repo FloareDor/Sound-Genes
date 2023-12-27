@@ -66,6 +66,11 @@ class SOM:
         X_std = Scaler.transform(X)
         joblib.dump(Scaler, 'scaler.pkl')
 
+        minmaxScaler = MinMaxScaler().fit(X_std)
+        X_norm = minmaxScaler.transform(X_std)
+        # X_norm = X_std
+        joblib.dump(minmaxScaler, 'minmaxScaler.pkl')
+
         # print(X_std.shape)
 
         # #applying PCA 

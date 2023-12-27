@@ -8,7 +8,7 @@ s = SOM()
 # Mapping dictionary for key transformation
 key_mapping = {1: 'Karuna', 2: 'Shanta', 3: 'Shringar', 4: 'Veera'}
 
-X = extract_features(filename="karuna__9.wav")
+X = extract_features(filename="gen0-0.wav")
 
 print("number of extracted features:", len(X))
 print("features:", X)
