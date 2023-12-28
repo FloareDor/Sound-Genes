@@ -35,6 +35,14 @@ Fsets={
 
 
 def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, TS, Srate):
+
+    Minfrq=0
+    Maxfrq=8000
+    Cl=120
+    Gl=329
+    TS=Srate*60
+    Srate=32000
+
     
 # Arguments explaination:-
 # 1) Lold: This is the chromosome returned by DE. It does not contain the frequencies

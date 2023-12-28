@@ -29,10 +29,10 @@ Gc= 50
 
 ### EVOLUTION PARAMETERS
 
-Ps= 5
+Ps= 10
 # Population Size
 
-Gs= 20
+Gs= 5   
 # Generation Size
 
 Lt= Gs//2
@@ -46,7 +46,7 @@ Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 1
+Ch= 2
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
@@ -63,7 +63,7 @@ Gl= 50
 # Bins per frame
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 160
+Wpb= 20
 # Waves per bin
 # This is the number of waves in a single Bin
 
@@ -88,6 +88,12 @@ Srate=round(16000/Frl)
 
 ### FITNESS AND VALIDATION
 
+from som.som_class import SOM
+
+som = SOM()
+# Initialization of Self-Organizing-Map
+
+
 def fitnessFunction(Inp):
     """
     Calculate fitness value for a given chromosome.
@@ -105,7 +111,7 @@ def fitnessFunction(Inp):
     from chr_to_wav import decode
     # This is the function that converts chromosomes to wav files.
 
-    from driver import computeFitnessValues
+    from driver import computeFitnessValues, compute_SOM_DOB
     # This is the fitness function that utilizes 5 features from set A and another 5 from set B
 
 
@@ -123,8 +129,12 @@ def fitnessFunction(Inp):
 
     decode(chromosome_copy, index=index, generation=generation, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Srate*60, Srate=Srate)
 
-    values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
-    fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
+    rasaDob = compute_SOM_DOB(SOM=som,audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index)
+    fitnessValue = rasaDob[rasaNumber]
+    print("rasaDOB: ",rasaDob)
+
+    # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
+    # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
     return fitnessValue
 
@@ -405,7 +415,7 @@ def locmut(Inp):
     Min=Inp[4][0]
     Max=Inp[4][1]
     Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
-    Cyc=Inp[4][3]
+    Cyc=Inp[4][3][0]
 
 
     Mut=deepcopy(Pop[i])
