@@ -311,7 +311,7 @@ def poprun(Inp):
     Temp=fitnessFunction([Tri, i, Gc])
     # Temp is used here to reduce the number of fitness function calls
 
-    if(Temp<Fiti):
+    if(Temp<=Fiti):
         return [Tri, Temp]
         # If successful, return the child chromosome as well as it's fitness
         

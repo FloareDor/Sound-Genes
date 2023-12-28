@@ -29,7 +29,7 @@ Gc= 50
 
 ### EVOLUTION PARAMETERS
 
-Ps= 10
+Ps= 5
 # Population Size
 
 Gs= 5   
@@ -46,7 +46,7 @@ Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 2
+Ch= 1
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
@@ -63,7 +63,7 @@ Gl= 50
 # Bins per frame
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 20
+Wpb= 160
 # Waves per bin
 # This is the number of waves in a single Bin
 
@@ -357,7 +357,7 @@ def poprun(Inp):
 
     Temp=fitnessFunction([Tri, i, Gn])
 
-    if(Temp<Fiti):
+    if(Temp<=Fiti):
         return [Tri, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
@@ -396,7 +396,7 @@ def loccro(Inp):
 
     Temp=fitnessFunction([Cro, i, Gn])
 
-    if(Temp<Fiti):
+    if(Temp<=Fiti):
         return [Cro, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
@@ -447,7 +447,7 @@ def locmut(Inp):
 
     Temp=fitnessFunction([Mut, i, Gn])
 
-    if(Temp<Fiti):
+    if(Temp<=Fiti):
         return [Mut, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
