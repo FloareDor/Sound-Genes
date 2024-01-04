@@ -30,15 +30,15 @@ Cp=0.8
 # This is the amount of crossover between the original vector and the mutant vector 
     # and is used to create the trial vector
 
-K=0.8
+K=0.5
 # Coefficient used to generate the mutant vector
 
-Fr=[0.5]
+Fr=[1]
 # Coefficient used to generate the mutant vector
 
 # Comment by Arya added 07092023. It may be advisable to reduce K to 0.5 and range of Fr to 1 instead of 2. 
 
-Ps= 100
+Ps= 10
 # Population Size
 
 Gs= 10
@@ -60,7 +60,7 @@ Gl= 50
 # Gene Length
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 20
+Wpb= 160
 # Waves per bin
 # This is the number of waves in a single Bin
 

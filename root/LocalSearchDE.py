@@ -29,24 +29,24 @@ Gc= 50
 
 ### EVOLUTION PARAMETERS
 
-Ps= 5
+Ps= 96
 # Population Size
 
-Gs= 5   
+Gs= 300 
 # Generation Size
 
-Lt= Gs//2
+Lt= 0# Gs//2
 # Local Search Threshold
 # Above this value, the search will incorporate local search as well
 
 
 ### MULTIPROCESSING ARGUMENTS
 
-Pc= 5
+Pc= 32
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 1
+Ch= 3
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
@@ -123,7 +123,7 @@ def fitnessFunction(Inp):
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
     chromosome_copy = deepcopy(chromosome)
 
-    for j in range(Cl):
+    for j in range(1,Cl):
         for k in range(Gl):
             chromosome_copy[j][k].append(chromosome_copy[0][k][1])
 
@@ -647,7 +647,7 @@ def main():
             plt.xlabel("Number of Generations")
             plt.ylabel("Fitness")
             plt.legend(loc="upper right")
-            plt.savefig(f"Graphs/Graph-Ps={Ps}-Gs={Gs}-v1_01.png")
+            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}_Karuna.png")
             plt.close()
         
 
@@ -655,6 +655,14 @@ def main():
 
     print(Bfit[-1], End-Start)
     # Print the error between the Test chromosome and the Final chromosome
+
+    with open("LSDE_Karuna.txt","w") as f:
+
+        for i in range(len(Qval)):
+            print(Afit[i], file=f, end=",")
+            print(Bfit[i], file=f, end=",")
+            print(Qval[i], file=f, end="\n")
+ 
 
 
 if __name__ == '__main__':

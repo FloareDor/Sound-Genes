@@ -38,10 +38,6 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
     Out=np.zeros(TS, dtype=np.int16)
     # This is the array that will be finally converted to a wav
 
-    Wpb=len(L[0])
-    # This is the total number of waves in every frame, here it is assigned
-        # a new value to avoid edge cases
-
 
     for Fn in range(Cl):
     # For Frame Number in the chromosome
@@ -133,6 +129,9 @@ def frame_to_wav(F, Srate, SperF):
         while Cfrq<= bin[2]:
             Cfrq+= Jfrq
             Count+= 1
+
+        if Count>=Wf.shape[0]:
+            break
 
         Wf[Count-1]+= (1-abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
