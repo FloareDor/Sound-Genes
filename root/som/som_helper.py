@@ -25,7 +25,7 @@ def m_distance(x,y):
 ## Degree of Belonging
 def winning_neuron(data, t, som, num_rows, num_cols):
     winner = [0, 0]
-    shortest_distance = np.sqrt(data.shape[1])  # initialize with max distance
+    shortest_distance = float('inf')  # initialize with max distance
     input_data = data[t]
     for row in range(num_rows):
         for col in range(num_cols):
@@ -38,7 +38,7 @@ def winning_neuron(data, t, som, num_rows, num_cols):
 
 def winning_neuron_per_rasa(data, t, som, num_rows, num_cols, label_map, rasa):
     winner = [0, 0]
-    shortest_distance = np.sqrt(data.shape[1])  # initialize with max distance
+    shortest_distance = float('inf')  # initialize with max distance
     input_data = data[t]
     for row in range(num_rows):
         for col in range(num_cols):
@@ -47,6 +47,7 @@ def winning_neuron_per_rasa(data, t, som, num_rows, num_cols, label_map, rasa):
                 if distance < shortest_distance:
                     shortest_distance = distance
                     winner = [row, col]
+                    
     
     return winner, shortest_distance
 
