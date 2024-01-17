@@ -424,7 +424,7 @@ def main():
     # The inner components will be explained further in the function itself
 
 
-    while Gn<=Gs:
+    while Gn<Gs:
         Gn=Gn+1
 
     # Run the while loop Gs times

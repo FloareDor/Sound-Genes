@@ -530,7 +530,7 @@ def main():
     Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
 
 
-    while Gn<=Gs:
+    while Gn<Gs:
         Gn=Gn+1
 
     # Run the while loop Gs times
