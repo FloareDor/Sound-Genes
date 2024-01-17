@@ -19,7 +19,7 @@ Cp=0.8
 K=0.5
 # Coefficient used to generate the mutant vector
 
-Fr=[1]
+Fr=[2]
 # Coefficient used to generate the mutant vector
 
 Gc= 50
@@ -35,7 +35,7 @@ Ps= 96
 Gs= 300 
 # Generation Size
 
-Lt= 0# Gs//2
+Lt= Gs//2
 # Local Search Threshold
 # Above this value, the search will incorporate local search as well
 
@@ -93,6 +93,14 @@ from som.som_class import SOM
 som = SOM()
 # Initialization of Self-Organizing-Map
 
+# Use the below code if there are multiple ffs
+# ff1i=16.5 # Average value of ff1
+# ff2i=36750 # Average value of ff1
+# s1=ff2i/ff1i
+# s2=1
+# w1=0.5 # Weight of ff1
+# w2=0.5 # Weight of ff2
+
 
 def fitnessFunction(Inp):
     """
@@ -136,34 +144,22 @@ def fitnessFunction(Inp):
     # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
-    return fitnessValue
+    return fitnessValue**2
 
 
-def Q():
+def Q(L):
     
     sum=0
 
-    for i in range(Ps):
-        for j in range(Cl):
-            for k in range(Gl-1):
+    for j in range(Cl):
+        for k in range(Gl-1):
 
-                sum+= abs(Pop[i][j][k][0]-Pop[i][j][k+1][0])
+            sum+= abs(L[j][k][0]-L[j][k+1][0])
 
-    return 100*float(sum)/(A/2*Cl*Gl*Ps)
+        if j!=Cl-1:
+            sum+=abs(L[j][0][0]-L[j+1][0][0])
 
-
-def P():
-    
-    sum=0
-
-    for i in range(Ps):
-        for j in range(Cl):
-            for k in range(Gl-1):
-
-                if j==0:
-                    sum+= abs(Pop[i][j][k][1]-Pop[i][j][k+1][1])
-
-    return 100*float(sum)/(3.141*(Gl-1)*Ps)
+    return sum/2000
 
 
 ### ASSISTING FUNCTIONS
@@ -256,27 +252,27 @@ def poprun(Inp):
        # It is used for Global search (Minimal additional cost)
    
 
-    for _ in range(10):
+    for _ in range(20):
     # This is the maximum number of times the chromosome should be revaluated if it is out of bounds
 
         Mut=deepcopy(Pop[i])
         # Mutant Vector
-        # Mut is the Mutant Vector of population member index i
+        # This is the Mutant Vector of population member index i
         # Initiate it as a random chromosome
 
         F=rd.uniform(-Fr[0], Fr[0])
         # Coefficient used to generate the mutant vector
 
         while(1):
-        
+            
             y,z= rd.sample(range(Ps),2)
 
             if(y!=i and z!=i and y!=X and z!=X):
                 break
-        
+            
         # The above are used to choose population vectors to mutate the original 
             # vector with
-    
+        
         for j in range(Cl):
             for k in range(Gl):
 
@@ -356,6 +352,7 @@ def poprun(Inp):
         # that component with that of the population member
 
     Temp=fitnessFunction([Tri, i, Gn])
+    # Temp is used here to reduce the number of fitness function calls
 
     if(Temp<=Fiti):
         return [Tri, Temp]
@@ -473,6 +470,10 @@ def main():
     import numpy as np
     # This is used for some calculations
 
+    import os
+    # This library is used to create/check folders/directories
+
+
 
     Start= time.time()
 
@@ -502,11 +503,6 @@ def main():
     Qval=[]
     # Q Values List
     # This is a list of the Q values in every generation for plotting purposes
-    # Will be eliminated from the final code
-
-    Pval=[]
-    # P Values List
-    # This is a list of the P values in every generation for plotting purposes
     # Will be eliminated from the final code
 
 
@@ -540,7 +536,7 @@ def main():
     # Run the while loop Gs times
     # This imitates Gs Generations of Evolution
 
-        #Fr[0]=Fr[0]/1.01
+        # Fr[0]=Fr[0]/1.01
         # The above line of code can be used to change the value of F progressively
 
         Gen[0]= Gn
@@ -633,43 +629,48 @@ def main():
 
 
         Best[0]=fittest()
+        print("Best= ", Best[0])
 
         Afit.append(sum(Fitness)/float(Ps))
         Bfit.append(Best[0][1])
-        Qval.append(Q())
-        Pval.append(P())
+        Qval.append(Q(Pop[Best[0][0]]))
 
-        if(Gn%(Gs//5)==0):
+
+        if(Gn%5==0):
             plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
             plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
             plt.plot(range(0,len(Qval)), Qval, label="Q value")
-            plt.plot(range(0,len(Pval)), Pval, label="P value")
             plt.xlabel("Number of Generations")
             plt.ylabel("Fitness")
             plt.legend(loc="upper right")
-            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}_Karuna.png")
+            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-LSDE.png")
             plt.close()
         
 
+            with open("Values_LSDE.txt","w") as f:
+
+                for i in range(len(Qval)):
+                    print(Afit[i], file=f, end=",")
+                    print(Bfit[i], file=f, end=",")
+                    print(Qval[i], file=f, end="\n")
+
+        if Gn!=Gs: 
+            for i in range(Ps):
+                os.remove(f'./audio_output/gen{Gn}-{i}.wav')
+                os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
+                os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
+                os.remove(f'./features_output/gen{Gn}-{i}_all_features.json')
+
+
     End= time.time()
 
-    print(Bfit[-1], End-Start)
-    # Print the error between the Test chromosome and the Final chromosome
-
-    with open("LSDE_Karuna.txt","w") as f:
-
-        for i in range(len(Qval)):
-            print(Afit[i], file=f, end=",")
-            print(Bfit[i], file=f, end=",")
-            print(Qval[i], file=f, end="\n")
- 
+    print(Best, End-Start)
 
 
 if __name__ == '__main__':
 
     import os
     # This library is used to create/check folders/directories
-
     # creating output directories if they do not exist
 
 

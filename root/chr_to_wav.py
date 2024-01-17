@@ -83,7 +83,7 @@ def expand(Lold, Minfrq, Maxfrq, Cl, Gl, Wpb):
 
         for i,bin in enumerate(frame):
 
-            bin[0]=bin[0]*1500000/Wpb
+            bin[0]=bin[0]*10000#1500000/Wpb
             # Scaling up the amplitude for fft
 
             bin.append(Jfrq/2 +i*Jfrq)
@@ -138,6 +138,19 @@ def frame_to_wav(F, Srate, SperF):
         Wf[Count]+= (abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
 
-    Wf=np.array(ifft(Wf), dtype="int16")
+    Wf=ifft(Wf)
+
+#    # Normalise the loudness at the ends
+    #a=2 # How bell shaped the scaling must be
+
+    #Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
+    
+    #for i in range(SperF):
+
+        #Wf[i]=Wf[i].real+Wf[i].real*Norm[i]*50
+
+    Wf=np.array(Wf, dtype="int16")
     # Find the inverse fourier transform of this frame
+
+
     return Wf

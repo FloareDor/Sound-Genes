@@ -103,8 +103,8 @@ def computeFitnessValues(generation, populationNumber, audioFile="aaramb.wav", r
         os.remove(f'./jAudio/gen{generation}-{populationNumber}FV.xml')
         os.remove(f'./jAudio/gen{generation}-{populationNumber}FK.xml')
 
-        if populationNumber % 25 != 0 and populationNumber != 119:
-            # os.remove(f'./audio_output/{audioFile}')
+        if populationNumber % 25 != 0:
+            os.remove(f'./audio_output/{audioFile}')
             os.remove(output_filename)
             os.remove(output_filename.replace("_10_", '_all_'))
 
