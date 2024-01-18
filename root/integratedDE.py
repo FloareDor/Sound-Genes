@@ -202,24 +202,8 @@ def fittest():
 # Fittest Population Member Evaluator
 # Finds the Population Member with the Greatest Fitness and that Fitness
 
-    Bf=10000000
-    # Best Fitness
-    # This the Best Fitness found
-    # Initially it is set to an arbitrarily high number for minimization
-
-    Fiti=0
-    # Fittest Member Index
-    # This is the chromosome index with the highest fitness
-    # Initially it is the first chromosome
-
-    for i in range(Ps):
-        if Fitness[i]<Bf:
-            Bf= Fitness[i]
-            Fiti=i
-        
-        # Simply keep track of the lowest error among the population members
-            
-    # Bf is now the best fitness and Fiti is the corresponding population member
+    Bf=min(Fitness)
+    Fiti=Fitness.index(Bf)
 
     return Fiti, Bf
 
