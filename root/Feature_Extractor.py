@@ -35,7 +35,6 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
     except subprocess.CalledProcessError as e:
         print("Error executing Java command:", e)
     else:
-        pass
         # print("Java command executed successfully")
 
         # Load XML file
@@ -54,28 +53,27 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
 
         finalFeatures = [feature for feature in coreFeatures.coreFeatures if feature not in coreFeatures.zero_features]
         features = []
-        file_path = 'loadingDataCOlumns.txt'
+        file_path = './loadingDataCOlumns.txt'
         allCoreFeatures = []
         # Read the content of the text file and split it into lines
         with open(file_path, 'r') as file:
             allCoreFeatures = file.read().splitlines()
 
         # Now 'content' is a list where each element corresponds to a line in the text file
-        print(allCoreFeatures)
 
         for feature_name in allCoreFeatures:
             feature_element = root.find(f"./data_set/feature[name='{feature_name}']")
             if feature_element is not None:
                 values = [v.text for v in feature_element.findall('v')]
                 if len(values) == 0:
-                    print("no value:",feature_name)
+                    #print("no value:",feature_name)
                     somInput.append(0)
                     data[feature_name] = 0
                     features.append(feature_name)
 
                 elif len(values) == 1:
                     if values[0] == "NaN":
-                        print("zero parameter:",feature_name)
+                        #print("zero parameter:",feature_name)
                         values[0] = 0
                     data[feature_name] = values[0]
                     somInput.append(float(Decimal(values[0])))
@@ -85,16 +83,15 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
                     decimal_array = [float(Decimal(value)) for value in values if not math.isnan(Decimal(value))]
                     average_decimal = sum(decimal_array) / len(decimal_array)
                     if average_decimal == "nan":
-                        print("zero decimal:",feature_name)
-                    print("multiple values:",average_decimal, feature_name, type(average_decimal))
+                        #print("zero decimal:",feature_name)
+                        pass
+                    #print("multiple values:",average_decimal, feature_name, type(average_decimal))
                     somInput.append(average_decimal)
                     data[feature_name] = average_decimal
                     features.append(feature_name)
             else:
-                print("error:", feature_name)
-        print(len(somInput))
-                
-
+                #print("error:", feature_name)
+                pass
    
         # Store the extracted data in a JSON file
         json_file = f'{output_folder}/{output_filename}_all_features.json'
@@ -105,10 +102,10 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
     zeroCount=0
     for i in range(len(somInput)):
         if somInput[i] == 0.0:
-            print("zero:", coreFeatures.coreFeatures[i])
+            #print("zero:", coreFeatures.coreFeatures[i])
             zeroCount+=1
 
-    file_path = 'predictingDataColumns.txt'
+    file_path = './predictingDataColumns.txt'
     numbers = features
 
     # Open the file in write mode
@@ -117,9 +114,6 @@ def extract_features(settings="final-104.xml", directory="", filename="aaramb.wa
         for number in numbers:
             file.write(str(number) + '\n')
 
-    
-    print("zeroCount:", zeroCount)
     # print(somInput)
 
-    print("LENGTH:", len(somInput))
     return somInput

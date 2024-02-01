@@ -26,15 +26,17 @@ class SOM:
         self.max_steps = int(3*10e3)
         self.num_classes = 4
         self.train_x, self.test_x, self.train_y, self.test_y, self.X_std, self.X, self.y = self.loadData()
-        # print(self.train_x.shape)
-        # self.som = self.train(self.X_std, self.train_x, self.test_x, self.train_y, self.test_y)
-        # self.label_map = self.labelMap(self.som, self.X_std, self.y, self.train_x, self.train_y, self.num_rows, self.num_cols)
+
+        #print(self.train_x.shape)
+        #self.som = self.train(self.X_std, self.train_x, self.test_x, self.train_y, self.test_y)
+        #self.label_map = self.labelMap(self.som, self.X_std, self.y, self.train_x, self.train_y, self.num_rows, self.num_cols)
+
         self.test(self.train_x, self.test_x, self.test_y, self.X_std)
         
 
     def loadData(self):
         ### MODIFY THE NAME OF YOUR CSV HERE
-        df_data = pd.read_csv('y.csv')
+        df_data = pd.read_csv('./som/y.csv')
         y = df_data['Navarasa']
         columns_to_drop = ['data_set_id', 'Cluster', 'Srno', 'Belonging to C-0', 'Belonging to C-1', 'Navarasa', 'sno']
         extra_features_to_drop = ['Derivative of Method of Moments Overall Average', 'Derivative of Running Mean of Method of Moments Overall Average', 'Log of ConstantQ Overall Average']
@@ -48,10 +50,8 @@ class SOM:
         #Extract x and y from the dataframe
         X = df_data.iloc[:,0:253].values
         df_subset = df_data[column_list[:253]]
-        file_path = 'loadingDataCOlumns.txt'
+        file_path = './som/loadingDataCOlumns.txt'
         numbers = df_subset
-
-        print(len(X[0]))
 
         # Open the file in write mode
         with open(file_path, 'w') as file:
@@ -64,12 +64,12 @@ class SOM:
         #Standardize data
         Scaler = StandardScaler().fit(X)
         X_std = Scaler.transform(X)
-        joblib.dump(Scaler, 'scaler.pkl')
+        joblib.dump(Scaler, './som/scaler.pkl')
 
         minmaxScaler = MinMaxScaler().fit(X_std)
         X_norm = minmaxScaler.transform(X_std)
         # X_norm = X_std
-        joblib.dump(minmaxScaler, 'minmaxScaler.pkl')
+        joblib.dump(minmaxScaler, './som/minmaxScaler.pkl')
 
         # print(X_std.shape)
 
@@ -87,7 +87,7 @@ class SOM:
         minmaxScaler = MinMaxScaler().fit(X_std)
         X_norm = minmaxScaler.transform(X_std)
         # X_norm = X_std
-        joblib.dump(minmaxScaler, 'minmaxScaler.pkl')
+        joblib.dump(minmaxScaler, './som/minmaxScaler.pkl')
 
         # print(X_norm.shape)
 
@@ -117,8 +117,8 @@ class SOM:
                         som[row][col] += learning_rate*(X_norm[t]-som[row][col]) # update neighbour's weight
 
         print("SOM training completed")
-        with open('som_model.pkl', 'wb') as f:
-            pickle.dump(som, f)
+        with open('./som/som_model.pkl', 'wb') as f:
+            pickle.dump(som, f, protocol=0)
 
         return som
 
@@ -151,8 +151,8 @@ class SOM:
                     label = max(label_list, key=label_list.count)
                 label_map[row][col] = label
 
-        with open('labelMap.pkl', 'wb') as f:
-            pickle.dump(label_map, f)
+        with open('./som/labelMap.pkl', 'wb') as f:
+            pickle.dump(label_map, f, protocol=0)
 
         return label_map
 
@@ -161,16 +161,16 @@ class SOM:
         #X_std = StandardScaler().fit_transform(X)
         #test_x_norm = minmax_scaler(test_x)
 
-        with open('som_model.pkl', 'rb') as f:
-            som = pickle.load(f)
-        with open('labelMap.pkl', 'rb') as f:
-            label_map = pickle.load(f)
+        with open('./som/som_model.pkl', 'rb') as f:
+            som = pickle.load(f, encoding='ASCII')
+        with open('./som/labelMap.pkl', 'rb') as f:
+            label_map = pickle.load(f, encoding='ASCII')
         data = minmax_scaler(train_x) # normalisation
         minmaxScaler = MinMaxScaler().fit(X_std)
         X_norm = minmaxScaler.transform(X_std)
         # X_norm = X_std
 
-        file_path = 'testing.txt'
+        file_path = './som/testing.txt'
         numbers = X_norm[34]
 
         # Open the file in write mode
@@ -194,7 +194,7 @@ class SOM:
         df = pd.DataFrame(df)
 
         # Save the DataFrame to a CSV file
-        df.to_csv("final_classes_per_rasa.csv", index=False)
+        df.to_csv("./som/final_classes_per_rasa.csv", index=False)
 
         count=0
         for i in range(len(X_norm)):
@@ -207,13 +207,13 @@ class SOM:
         #print(X)
         #test_x_norm = minmax_scaler(test_x)
 
-        with open('som_model.pkl', 'rb') as f:
-            som = pickle.load(f)
-        with open('labelMap.pkl', 'rb') as f:
-            label_map = pickle.load(f)
+        with open('./som/som_model.pkl', 'rb') as f:
+            som = pickle.load(f, encoding='ASCII')
+        with open('./som/labelMap.pkl', 'rb') as f:
+            label_map = pickle.load(f, encoding='ASCII')
 
-        loaded_scaler = joblib.load('scaler.pkl')
-        minmaxScaler = joblib.load('minmaxScaler.pkl')
+        loaded_scaler = joblib.load('./som/scaler.pkl')
+        minmaxScaler = joblib.load('./som/minmaxScaler.pkl')
         # print(X)
         X = X.reshape(1, -1)
         X = loaded_scaler.transform(X)
@@ -227,7 +227,7 @@ class SOM:
         #print("STANDARD:", X_std)
         test_x_norm = minmax_scaler(X)
 
-        file_path = 'predicting.txt'
+        file_path = './som/predicting.txt'
         numbers = X[len(X)-1]
 
         # Open the file in write mode
@@ -244,6 +244,3 @@ class SOM:
         winner, rasa_df = get_shortest_distances_per_rasa(X, len(X)-1, som, self.num_rows, self.num_cols, self.num_classes, label_map)
         #print(rasa_df)
         return rasa_df
-
-    
-

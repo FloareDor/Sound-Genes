@@ -125,11 +125,7 @@ def computeFitnessValues(generation, populationNumber, audioFile="aaramb.wav", r
 def compute_SOM_DOB(SOM, generation, populationNumber, audioFile="Karuna.wav"):
     X=extract_features(filename=audioFile)
 
-    print("number of extracted features:", len(X))
-
     prediction = SOM.predict(X)
-
-    print("prediction: ", prediction)
 
     return prediction
 
