@@ -212,19 +212,26 @@ class SOM:
         with open('./som/labelMap.pkl', 'rb') as f:
             label_map = pickle.load(f, encoding='ASCII')
 
+        # with open("Outputs_pc.txt", "w") as f:
+            # print(som, file=f)
+            # print(label_map, file=f)
+
         loaded_scaler = joblib.load('./som/scaler.pkl')
         minmaxScaler = joblib.load('./som/minmaxScaler.pkl')
-        # print(X)
+        # with open("Outputs_pc.txt", "a") as f:
+            # print(X, file=f)
         X = X.reshape(1, -1)
         X = loaded_scaler.transform(X)
         X = minmaxScaler.transform(X)
-        # print("standard X:", X)
+        # with open("Outputs_pc.txt", "a") as f:
+            # print("standard X:", X, file=f)
 
         X_all = np.vstack((self.train_x, X))
         # X_all=X_all[1:]
 
         X_std = StandardScaler().fit_transform(X_all)
-        #print("STANDARD:", X_std)
+        # with open("Outputs_pc.txt", "a") as f:
+            # print("STANDARD:", X_std, file=f)
         test_x_norm = minmax_scaler(X)
 
         file_path = './som/predicting.txt'
@@ -236,11 +243,15 @@ class SOM:
             for number in numbers:
                 file.write(str(number) + '\n')
 
-        # print("standardized final x:", X)
+        # with open("Outputs_pc.txt", "a") as f:
+            # print("standardized final x:", X, file=f)
+
+        # with open("Outputs_pc.txt", "w") as f:
+            # print(X,som, file=f)
         lables = []
         ### MODIY NUMBER LABELS ACCORDING TO THE NUMBER OF CLASSES IN YOUR CSV
         num_labels = 4
         # d,_,_ = get_bmu(test_x_norm[len(test_x_norm)-1],som,num_labels,label_map)
         winner, rasa_df = get_shortest_distances_per_rasa(X, len(X)-1, som, self.num_rows, self.num_cols, self.num_classes, label_map)
-        #print(rasa_df)
+
         return rasa_df
