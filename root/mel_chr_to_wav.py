@@ -34,7 +34,7 @@ Fsets={
 }
 
 
-def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, TS, Srate):
+def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
 
     Minfrq=0
     Maxfrq=8000
@@ -68,6 +68,10 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, TS, Srate):
     SperF=int(Srate*Flen)
     # Samples per Frame
     # This is the length of a frame, in samples not seconds
+
+    global Norm
+    Norm=10*0.5*np.array([1-np.cos((2*np.pi*(i+SperF))/(SperF-1)) for i in range(SperF)])
+
 
     Out=np.zeros(TS, dtype=np.int16)
     # This is the array that will be finally converted to a wav
@@ -201,7 +205,23 @@ def frame_to_wav(F, Srate, SperF):
         
         Wf[Count]+= (1-abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
+    Wf=ifft(Wf)
 
-    Wf=np.array(ifft(Wf), dtype="int16")
+    # # a=1.5 # How bell shaped the scaling must be
+
+    # # Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
+
+    # # for i in range(SperF):
+
+        # # Wf[i]=0*Wf[i].real+Wf[i].real*Norm[i]*10
+
+    
+    # for i in range(SperF):
+
+        # Wf[i]=0.5*Wf[i].real*Norm[i]*10
+
+    Wf=np.multiply(Wf, Norm)
+
+    Wf=np.array(Wf, dtype="int16")
     # Find the inverse fourier transform of this frame
     return Wf

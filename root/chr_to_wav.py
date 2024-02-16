@@ -137,20 +137,49 @@ def frame_to_wav(F, Srate, SperF):
 
         Wf[Count]+= (abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
-
     Wf=ifft(Wf)
 
-#    # Normalise the loudness at the ends
-    #a=2 # How bell shaped the scaling must be
+    # Normalise the loudness at the ends
 
-    #Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
+    Norm=0.5*np.array([1-np.cos((2*np.pi*(i+SperF))/(SperF-1)) for i in range(SperF)])
     
-    #for i in range(SperF):
+    for i in range(SperF):
 
-        #Wf[i]=Wf[i].real+Wf[i].real*Norm[i]*50
+        Wf[i]=0.5*Wf[i].real*Norm[i]*10
 
     Wf=np.array(Wf, dtype="int16")
     # Find the inverse fourier transform of this frame
 
+
+    # Normalise the loudness at the ends
+    # a=2 # How bell shaped the scaling must be
+
+    # Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
+    
+    # for i in range(SperF):
+
+        # Wf[i]=0.5*Wf[i].real+Wf[i].real*Norm[i]*10
+
+    # Wf=np.array(Wf, dtype="int16")
+
+#     for i in range(SperF):
+
+        # if i==0:
+            # Avg=np.average(np.abs(Wf[0:50]))
+
+        # if i>50 and i<SperF-50:
+            
+            # Avg+=abs(Wf[i+50])
+            # Avg-=abs(Wf[i-51])
+
+        # if i<50:
+            # Avg+=abs(Wf[i+50])
+
+        # if i>SperF-50:
+            # pass
+            
+        # Wf[i]=1500*Wf[i]/Avg
+
+    # Wf=np.array(Wf, dtype="int16")
 
     return Wf
