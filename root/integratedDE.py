@@ -45,7 +45,7 @@ Ch= 2
 
 ### MUSIC PARAMETERS
 
-Cl= 120
+Cl= 239
 # Chromosome Length
 # Frames per audio sample
 # This is the number of Time Frames in a single song
@@ -86,8 +86,8 @@ som = SOM()
 # Initialization of Self-Organizing-Map
 
 # Use the below code if there are multiple ffs
-ff1i=12.5 # Average value of ff1
-ff2i=50 # Average value of ff1
+ff1i=34 # Average value of ff1
+ff2i=75 # Average value of ff1
 s1=1
 s2=ff1i/ff2i
 w1=0.95 # Weight of ff1

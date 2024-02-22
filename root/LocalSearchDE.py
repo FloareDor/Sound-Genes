@@ -29,10 +29,10 @@ Gc= 50
 
 ### EVOLUTION PARAMETERS
 
-Ps= 96
+Ps= 10
 # Population Size
 
-Gs= 300 
+Gs= 5
 # Generation Size
 
 Lt= Gs//2
@@ -42,33 +42,33 @@ Lt= Gs//2
 
 ### MULTIPROCESSING ARGUMENTS
 
-Pc= 32
+Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 3
+Ch= 2
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
 
 ### MUSIC PARAMETERS
 
-Cl= 300
+Cl= 239
 # Chromosome Length
 # Frames per audio sample
 # This is the number of Time Frames in a single song
 
-Gl= 50
+Gl= 329
 # Gene Length
 # Bins per frame
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 160
+Wpb= 24
 # Waves per bin
 # This is the number of waves in a single Bin
 
 
-Frl=0.2
+Frl=0.5
 # Frame Length
 # This is the time in seconds for which a frame lasts
 # IMPORTANT: Frlen*Cl=60 must always hold
@@ -94,12 +94,12 @@ som = SOM()
 # Initialization of Self-Organizing-Map
 
 # Use the below code if there are multiple ffs
-# ff1i=16.5 # Average value of ff1
-# ff2i=36750 # Average value of ff1
-# s1=ff2i/ff1i
-# s2=1
-# w1=0.5 # Weight of ff1
-# w2=0.5 # Weight of ff2
+ff1i=34 # Average value of ff1
+ff2i=75 # Average value of ff1
+s1=1
+s2=ff1i/ff2i
+w1=0.95 # Weight of ff1
+w2=0.05 # Weight of ff2
 
 
 def fitnessFunction(Inp):
@@ -116,7 +116,7 @@ def fitnessFunction(Inp):
         float: The fitness value.
     """
 
-    from chr_to_wav import decode
+    from mel_chr_to_wav import decode
     # This is the function that converts chromosomes to wav files.
 
     from driver import computeFitnessValues, compute_SOM_DOB
@@ -144,7 +144,9 @@ def fitnessFunction(Inp):
     # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
-    return fitnessValue**2
+    # return fitnessValue**2
+
+    return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
 
 
 def Q(L):
@@ -157,7 +159,7 @@ def Q(L):
             sum+= abs(L[j][k][0]-L[j][k+1][0])
 
         if j!=Cl-1:
-            sum+=abs(L[j][0][0]-L[j+1][0][0])
+            sum+=abs(L[j][0][0]-L[j+1][k-1][0])
 
     return sum/2000
 
@@ -210,24 +212,8 @@ def fittest():
 # Fittest Population Member Evaluator
 # Finds the Population Member with the Greatest Fitness and that Fitness
 
-    Bf=10000000
-    # Best Fitness
-    # This the Best Fitness found
-    # Initially it is set to an arbitrarily high number for minimization
-
-    Fiti=0
-    # Fittest Member Index
-    # This is the chromosome index with the highest fitness
-    # Initially it is the first chromosome
-
-    for i in range(Ps):
-        if Fitness[i]<Bf:
-            Bf= Fitness[i]
-            Fiti=i
-        
-        # Simply keep track of the lowest error among the population members
-            
-    # Bf is now the best fitness and Fiti is the corresponding population member
+    Bf=min(Fitness)
+    Fiti=Fitness.index(Bf)
 
     return Fiti, Bf
 
@@ -656,6 +642,10 @@ def main():
 
         if Gn!=Gs: 
             for i in range(Ps):
+
+                if Gn%50==0 and i==Best[0][0]:
+                    continue
+
                 os.remove(f'./audio_output/gen{Gn}-{i}.wav')
                 os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
                 os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')

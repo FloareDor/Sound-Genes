@@ -38,7 +38,7 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
 
     Minfrq=0
     Maxfrq=8000
-    Cl=120
+    Cl=239
     Gl=329
     TS=Srate*60
     Srate=32000
@@ -61,7 +61,7 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
     # Now every bin contains [Amplitude, Phase, Frequency]
 
 
-    Flen=TS/(Cl*Srate)
+    Flen=TS/((Cl//2+1)*Srate)
     # Frame Length
     # This is the length of a timeframe in seconds
 
@@ -70,7 +70,11 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
     # This is the length of a frame, in samples not seconds
 
     global Norm
-    Norm=10*0.5*np.array([1-np.cos((2*np.pi*(i+SperF))/(SperF-1)) for i in range(SperF)])
+
+    a=1.5 # How bell shaped the scaling must be
+
+    Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
+    # Norm=10*0.5*np.array([1-np.cos((2*np.pi*(i+SperF))/(SperF-1)) for i in range(SperF)])
 
 
     Out=np.zeros(TS, dtype=np.int16)
@@ -89,12 +93,16 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
 
             for i in range(SperF):
                 if (Fn*SperF+i)<TS:
-                    Out[Fn*SperF+i]=Wf[i]
+                    Out[int(Fn/2*SperF+i)]+=Wf[i]
 
         else:
+            if Fn%2==0:
+                for i in range(SperF):
+                    Out[int(Fn/2*SperF+i)]+=Wf[i]
 
-            for i in range(SperF):
-                Out[Fn*SperF+i]=Wf[i]
+            else:
+                for i in range(SperF):
+                    Out[int((Fn//2-1)*SperF+i+SperF/2)]+=Wf[i]
             # Add the frame to the Out array
             # Here Fn*SperF gives the time point of the start of this frame
 
@@ -206,10 +214,6 @@ def frame_to_wav(F, Srate, SperF):
         Wf[Count]+= (1-abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
     Wf=ifft(Wf)
-
-    # # a=1.5 # How bell shaped the scaling must be
-
-    # # Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
 
     # # for i in range(SperF):
 
