@@ -1,8 +1,13 @@
+### Revamped the whole code to make it modular, standardised and made the bin frequency
+### mapping more direct, rather that using a hit or miss approach
+
 import numpy as np
  
 from scipy.io import wavfile
 
 from scipy.fft import ifft
+
+from os import chdir
 
 # My entire understanding of fft and hence ifft comes from this source:-
 # http://howthefouriertransformworks.com/understanding-the-output-of-an-fft/
@@ -25,7 +30,7 @@ def decode(Lold, index, generation, Minfrq, Maxfrq, Cl, Gl, Wpb, TS, Srate):
 
     L=expand(Lold=Lold, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb)
     # Now every bin contains [Amplitude, Phase, Frequency]
-
+    
 
     Flen=TS/(Cl*Srate)
     # Frame Length
@@ -70,42 +75,19 @@ def expand(Lold, Minfrq, Maxfrq, Cl, Gl, Wpb):
 # This function converts the chromosome to a new format where every bin
     # contains the list: [Amplitude, Phase, Frequency]
 
-    L=[]
-    # New chromosome with frequencies and bins
-
     Jfrq=(Maxfrq-Minfrq)/(Gl+1)
     # Jump frequency
     # This is the frequency gap between every two bins
     
-
     for frame in Lold:
-        L.append([])
-
+        
         for i,bin in enumerate(frame):
 
-            bin[0]=bin[0]*10000#1500000/Wpb
-            # Scaling up the amplitude for fft
-
-            bin.append(Jfrq/2 +i*Jfrq)
+            bin.append(i*Jfrq)
             # Adding the bin frequency to the bin
-
-
-            # The below lines of code add the waves to the bin
-            if Wpb==1:
-                L[-1].append(bin)
-
-            else:
-                bin[2]=bin[2]-0.5*Jfrq
-                # Here 0.5 can be alterred to create waves that are more localised around
-                # a specific bin
-                
-                incr=Jfrq/(Wpb-1)
-                for k in range(Wpb):
-                    L[-1].append([bin[0],bin[1],bin[2]+k*incr])
-    
     # Now every bin contains [Amplitude, Phase, Frequency]
 
-    return L
+    return Lold
 
 
 def frame_to_wav(F, Srate, SperF):
@@ -128,58 +110,21 @@ def frame_to_wav(F, Srate, SperF):
 
         while Cfrq<= bin[2]:
             Cfrq+= Jfrq
-            Count+= 1
+            Count+=1
 
-        if Count>=Wf.shape[0]:
+        if Count>=SperF:
             break
 
         Wf[Count-1]+= (1-abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
         Wf[Count]+= (abs(Cfrq-bin[2])/Jfrq)* (bin[0]*np.cos(bin[1])+1j*bin[0]*np.sin(bin[1]))
 
+
     Wf=ifft(Wf)
 
-    # Normalise the loudness at the ends
-
-    Norm=0.5*np.array([1-np.cos((2*np.pi*(i+SperF))/(SperF-1)) for i in range(SperF)])
-    
-    for i in range(SperF):
-
-        Wf[i]=0.5*Wf[i].real*Norm[i]*10
+    Wf=500*Wf
 
     Wf=np.array(Wf, dtype="int16")
     # Find the inverse fourier transform of this frame
-
-
-    # Normalise the loudness at the ends
-    # a=2 # How bell shaped the scaling must be
-
-    # Norm=np.array([np.power(4, a)*np.power((i/SperF*(1-i/SperF)), a) for i in range(SperF)])
-    
-    # for i in range(SperF):
-
-        # Wf[i]=0.5*Wf[i].real+Wf[i].real*Norm[i]*10
-
-    # Wf=np.array(Wf, dtype="int16")
-
-#     for i in range(SperF):
-
-        # if i==0:
-            # Avg=np.average(np.abs(Wf[0:50]))
-
-        # if i>50 and i<SperF-50:
-            
-            # Avg+=abs(Wf[i+50])
-            # Avg-=abs(Wf[i-51])
-
-        # if i<50:
-            # Avg+=abs(Wf[i+50])
-
-        # if i>SperF-50:
-            # pass
-            
-        # Wf[i]=1500*Wf[i]/Avg
-
-    # Wf=np.array(Wf, dtype="int16")
 
     return Wf

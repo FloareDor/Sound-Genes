@@ -38,29 +38,29 @@ Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 2
+Ch= 1
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
 
 ### MUSIC PARAMETERS
 
-Cl= 239
+Cl= 1
 # Chromosome Length
 # Frames per audio sample
 # This is the number of Time Frames in a single song
 
-Gl= 329
+Gl= 16000*30
 # Gene Length
 # Bins per frame
 # This is the number of frequency Bins in a single Time Frame
 
-Wpb= 24
+Wpb= 1
 # Waves per bin
 # This is the number of waves in a single Bin
 
 
-Frl=0.5
+Frl= 1
 # Frame Length
 # This is the time in seconds for which a frame lasts
 # IMPORTANT: Frlen*Cl=60 must always hold
@@ -108,7 +108,7 @@ def fitnessFunction(Inp):
         float: The fitness value.
     """
 
-    from mel_chr_to_wav import decode
+    from V20chr_to_wav import decode
     # This is the function that converts chromosomes to wav files.
 
     from driver import computeFitnessValues, compute_SOM_DOB
@@ -136,9 +136,9 @@ def fitnessFunction(Inp):
     # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
-    # return fitnessValue**2
+    return fitnessValue**2
 
-    return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
+    # return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
 
 
 def Q(L):

@@ -29,13 +29,13 @@ Gc= 50
 
 ### EVOLUTION PARAMETERS
 
-Ps= 10
+Ps= 5
 # Population Size
 
 Gs= 5
 # Generation Size
 
-Lt= Gs//2
+Lt= 0
 # Local Search Threshold
 # Above this value, the search will incorporate local search as well
 
@@ -46,7 +46,7 @@ Pc= 5
 # Number of processes
 # This is the number of cores this code should parallely run on
 
-Ch= 2
+Ch= 1
 # Chunk size
 # This is the number of elements each parallel run should process before returning
 
