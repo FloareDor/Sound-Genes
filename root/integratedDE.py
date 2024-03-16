@@ -11,7 +11,7 @@ A=10
 # Amplitude
 # This is the maximum amplitude or loudness
 
-Cp=0.8
+Cp=0.8 # 0.95
 # Crossover Probability
 # This is the amount of crossover between the original vector and the mutant
     # vector used to create the trial vector
@@ -25,11 +25,13 @@ Fr=[2]
 
 ### EVOLUTION PARAMETERS
 
-Ps= 10
+Ps= 5
 # Population Size
 
-Gs= 5
+Gs= 2
 # Generation Size
+
+new_or_cont= 0
 
 
 ### MULTIPROCESSING ARGUMENTS
@@ -108,7 +110,7 @@ def fitnessFunction(Inp):
         float: The fitness value.
     """
 
-    from V20chr_to_wav import decode
+    from chr_to_wav import decode
     # This is the function that converts chromosomes to wav files.
 
     from driver import computeFitnessValues, compute_SOM_DOB
@@ -123,10 +125,6 @@ def fitnessFunction(Inp):
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
     chromosome_copy = deepcopy(chromosome)
 
-    for j in range(1,Cl):
-        for k in range(Gl):
-            chromosome_copy[j][k].append(chromosome_copy[0][k][1])
-
     decode(chromosome_copy, index=index, generation=generation, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Srate*60, Srate=Srate)
 
     rasaDob = compute_SOM_DOB(SOM=som,audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index)
@@ -139,6 +137,19 @@ def fitnessFunction(Inp):
     return fitnessValue**2
 
     # return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
+
+
+def ff(L):
+
+    import numpy as np
+
+    loaded= np.load(f'./initial_chromosomes/L0.npz')
+
+    Test=loaded['arr_0']
+
+    La= np.array(L)
+
+    return np.mean(np.square(Test-La))
 
 
 def Q(L):
@@ -158,39 +169,61 @@ def Q(L):
 
 ### ASSISTING FUNCTIONS
 
-def chrm():
+def chrm(new_or_cont, i):
 # Random Chromosome Generator
 # Creates a random chromosome with the permissible boundary values
+    import numpy as np
 
-    L=[]
+    if new_or_cont==0:
 
-    for i in range(Cl):
-        L.append([])
-        
-        for j in range(Gl):
+        Rasas=[
+        np.random.randint(0, 17),
+        np.random.randint(17, 32),
+        np.random.randint(32, 47),
+        np.random.randint(47, 62)
+        ]
 
-            if i==0:
-                L[i].append([rd.uniform(0,A), rd.uniform(0,6.282)])
+        probabilities= [np.random.uniform(0.25, 0.75) for z in range(4)]
+        probabilities= [z/sum(probabilities) for z in probabilities]
+
+        for z, rasa in enumerate(Rasas):
+            loaded = np.load(f'./initial_chromosomes/L{rasa}.npz')
+            T=loaded['arr_0']
+
+            if z==0:
+                L=probabilities[z]*T
             else:
-                L[i].append([rd.uniform(0,A)])
+                L+=probabilities[z]*T
+
+        L=L.tolist()
     
-    return L
+        return L
+
+    else:
+
+        loaded = np.load(f'./final_chromosomes/L{i}.npz')
+        L=loaded['arr_0']
+
+        L=L.tolist()
+
+        return L
 
 
-def popinit():
+
+def popinit(new_or_cont):
 # Population Initiator
 # Creates an initial population pool
 
     from multiprocessing import Pool
 
     for i in range(Ps):
-        Pop[i]=chrm()
+        Pop[i]=chrm(new_or_cont, i)
         
-    Inp=[[Pop[i], i, 0] for i in range(0, Ps)]
+    Inp=[Pop[i] for i in range(0, Ps)]
 
     with Pool(processes= Pc) as pool:
 
-        result = pool.map_async(fitnessFunction, Inp, chunksize= Ch)
+        result = pool.map_async(ff, Inp, chunksize= Ch)
 
         for Out in result.get():
             Fitness.append(Out)
@@ -329,7 +362,7 @@ def poprun(Inp):
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gn])
+    Temp=ff(Tri)
     # Temp is used here to reduce the number of fitness function calls
 
     if(Temp<=Fiti):
@@ -370,6 +403,11 @@ def main():
     # This is a dictionary mapping integers to a unique Chromosome
     # Initiate it as an empty dictionary
 
+    FitnessSOM=[]
+    AfitSOM=[]
+    BfitSOM=[]
+    QvalSOM=[]
+
     global Fitness
     Fitness=[]
     # Fitness List
@@ -393,7 +431,7 @@ def main():
     # Will be eliminated from the final code
 
 
-    popinit()
+    popinit(new_or_cont)
     # Initiate and store the Population Dictionary
     
 
@@ -456,16 +494,33 @@ def main():
         Bfit.append(Best[0][1])
         Qval.append(Q(Pop[Best[0][0]]))
 
+        Inpx=[[Pop[i], i, Gn] for i in range(Ps)]
+        with Pool(processes= Pc) as pool:
+            result = pool.map_async(fitnessFunction, Inpx, chunksize= Ch)
+
+            Temp=0
+            for Out in result.get():
+                if len(FitnessSOM)<Ps:
+                    FitnessSOM.append(Out)
+
+                if Out<FitnessSOM[Temp]:
+                    FitnessSOM[Temp]=Out
+                Temp=Temp+1
+
+        AfitSOM.append(sum(FitnessSOM)/float(Ps))
+        BfitSOM.append(min(FitnessSOM))
+        QvalSOM.append(Q(Pop[FitnessSOM.index(BfitSOM[-1])]))
+
 
         if(Gn%5==0):
-            plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
-            plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
-            plt.plot(range(0,len(Qval)), Qval, label="Q value")
-            plt.xlabel("Number of Generations")
-            plt.ylabel("Fitness")
-            plt.legend(loc="upper right")
-            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-DE.png")
-            plt.close()
+            # plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
+            # plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
+            # plt.plot(range(0,len(Qval)), Qval, label="Q value")
+            # plt.xlabel("Number of Generations")
+            # plt.ylabel("Fitness")
+            # plt.legend(loc="upper right")
+            # plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-DE.png")
+            # plt.close()
         
 
             with open("Values_DE.txt","w") as f:
@@ -473,7 +528,17 @@ def main():
                 for i in range(len(Qval)):
                     print(Afit[i], file=f, end=",")
                     print(Bfit[i], file=f, end=",")
-                    print(Qval[i], file=f, end="\n")
+                    print(Qval[i], file=f, end=",")
+                    print(AfitSOM[i], file=f, end=",")
+                    print(BfitSOM[i], file=f, end=",")
+                    print(QvalSOM[i], file=f, end="\n")
+
+
+
+            if (Gn%50==0):
+                for i in range(Ps):
+                    Array= np.array(Pop[i], dtype="float32")
+                    np.savez_compressed(f"./final_chromosomes/L{i}.npz", Array)
 
         if Gn!=Gs: 
             for i in range(Ps):
@@ -502,6 +567,7 @@ if __name__ == '__main__':
     audioOutputPath = 'audio_output'
     featuresOutputPath = 'features_output'
     graphsPath = 'graphs'
+    finalChromosomesPath = 'final_chromosomes'
     if not os.path.exists(audioOutputPath):
         os.makedirs(audioOutputPath)
     else:
@@ -514,5 +580,11 @@ if __name__ == '__main__':
         os.makedirs(graphsPath)
     else:
         pass
+    if not os.path.exists(finalChromosomesPath):
+
+        os.makedirs(finalChromosomesPath)
+    else:
+        pass
+
 
     main()
