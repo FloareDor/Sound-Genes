@@ -219,11 +219,11 @@ def popinit(new_or_cont):
     for i in range(Ps):
         Pop[i]=chrm(new_or_cont, i)
         
-    Inp=[Pop[i] for i in range(0, Ps)]
+    Inp=[[Pop[i], i, 0] for i in range(0, Ps)]
 
     with Pool(processes= Pc) as pool:
 
-        result = pool.map_async(ff, Inp, chunksize= Ch)
+        result = pool.map_async(fitnessFunction, Inp, chunksize= Ch)
 
         for Out in result.get():
             Fitness.append(Out)
@@ -362,7 +362,7 @@ def poprun(Inp):
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=ff(Tri)
+    Temp=fitnessFunction([Tri, i, Gn])
     # Temp is used here to reduce the number of fitness function calls
 
     if(Temp<=Fiti):
@@ -494,33 +494,33 @@ def main():
         Bfit.append(Best[0][1])
         Qval.append(Q(Pop[Best[0][0]]))
 
-        Inpx=[[Pop[i], i, Gn] for i in range(Ps)]
-        with Pool(processes= Pc) as pool:
-            result = pool.map_async(fitnessFunction, Inpx, chunksize= Ch)
+        # Inpx=[[Pop[i], i, Gn] for i in range(Ps)]
+        # with Pool(processes= Pc) as pool:
+            # result = pool.map_async(fitnessFunction, Inpx, chunksize= Ch)
 
-            Temp=0
-            for Out in result.get():
-                if len(FitnessSOM)<Ps:
-                    FitnessSOM.append(Out)
+            # Temp=0
+            # for Out in result.get():
+                # if len(FitnessSOM)<Ps:
+                    # FitnessSOM.append(Out)
 
-                if Out<FitnessSOM[Temp]:
-                    FitnessSOM[Temp]=Out
-                Temp=Temp+1
+                # if Out<FitnessSOM[Temp]:
+                    # FitnessSOM[Temp]=Out
+                # Temp=Temp+1
 
-        AfitSOM.append(sum(FitnessSOM)/float(Ps))
-        BfitSOM.append(min(FitnessSOM))
-        QvalSOM.append(Q(Pop[FitnessSOM.index(BfitSOM[-1])]))
+        # AfitSOM.append(sum(FitnessSOM)/float(Ps))
+        # BfitSOM.append(min(FitnessSOM))
+        # QvalSOM.append(Q(Pop[FitnessSOM.index(BfitSOM[-1])]))
 
 
         if(Gn%5==0):
-            # plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
-            # plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
-            # plt.plot(range(0,len(Qval)), Qval, label="Q value")
-            # plt.xlabel("Number of Generations")
-            # plt.ylabel("Fitness")
-            # plt.legend(loc="upper right")
-            # plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-DE.png")
-            # plt.close()
+            plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
+            plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
+            plt.plot(range(0,len(Qval)), Qval, label="Q value")
+            plt.xlabel("Number of Generations")
+            plt.ylabel("Fitness")
+            plt.legend(loc="upper right")
+            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-DE.png")
+            plt.close()
         
 
             with open("Values_DE.txt","w") as f:
@@ -529,9 +529,9 @@ def main():
                     print(Afit[i], file=f, end=",")
                     print(Bfit[i], file=f, end=",")
                     print(Qval[i], file=f, end=",")
-                    print(AfitSOM[i], file=f, end=",")
-                    print(BfitSOM[i], file=f, end=",")
-                    print(QvalSOM[i], file=f, end="\n")
+                    # print(AfitSOM[i], file=f, end=",")
+                    # print(BfitSOM[i], file=f, end=",")
+                    # print(QvalSOM[i], file=f, end="\n")
 
 
 
