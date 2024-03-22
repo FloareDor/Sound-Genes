@@ -7,7 +7,7 @@ from copy import deepcopy
 
 ### HYPERPARAMETERS
 
-A=10
+A= 175000000
 # Amplitude
 # This is the maximum amplitude or loudness
 
@@ -88,12 +88,12 @@ som = SOM()
 # Initialization of Self-Organizing-Map
 
 # Use the below code if there are multiple ffs
-ff1i=34 # Average value of ff1
-ff2i=75 # Average value of ff1
+ff1i=1.8 # Average value of ff1
+ff2i=1.4*100000000 # Average value of ff1
 s1=1
 s2=ff1i/ff2i
-w1=0.95 # Weight of ff1
-w2=0.05 # Weight of ff2
+w1=0.85 # Weight of ff1
+w2=0.15 # Weight of ff2
 
 
 def fitnessFunction(Inp):
@@ -120,10 +120,15 @@ def fitnessFunction(Inp):
     chromosome=Inp[0]
     index=Inp[1]
     generation=Inp[2]
+    # generation=Inp[2][0]
     rasaNumber=1
 
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
     chromosome_copy = deepcopy(chromosome)
+
+    for j in range(1,Cl):
+        for k in range(Gl):
+            chromosome_copy[j][k].append(chromosome_copy[0][k][1])
 
     decode(chromosome_copy, index=index, generation=generation, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Srate*60, Srate=Srate)
 
@@ -134,9 +139,9 @@ def fitnessFunction(Inp):
     # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
-    return fitnessValue**2
+    # return fitnessValue**2
 
-    # return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
+    return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
 
 
 def ff(L):
@@ -147,14 +152,14 @@ def ff(L):
 
     Test=loaded['arr_0']
 
-    La= np.array(L)
+    La= np.array(L, dtype='float32')
 
     return np.mean(np.square(Test-La))
 
 
 def Q(L):
     
-    sum=0
+    sum= 0
 
     for j in range(Cl):
         for k in range(Gl-1):
@@ -219,7 +224,8 @@ def popinit(new_or_cont):
     for i in range(Ps):
         Pop[i]=chrm(new_or_cont, i)
         
-    Inp=[[Pop[i], i, 0] for i in range(0, Ps)]
+    Inp=[[Pop[i], i, 0] for i in range(Ps)]
+    # Inp=[Pop[i] for i in range(Ps)]
 
     with Pool(processes= Pc) as pool:
 
@@ -248,19 +254,19 @@ def fittest():
 def poprun(Inp):
 
 
-    i=Inp[0]
+    i= Inp[0]
     # 1) This is the index of the chromosome this call must work on
-    Gn = Inp[1][0]
+    Gn= Inp[1][0]
     # 2) Generation Number
         # This is used in the fitness function
     Pop= Inp[2]
     # 3) This is the population dictionary that contains all chromosomes
-    Fiti=Inp[3][i]
+    Fiti= Inp[3][i]
     # 4) This is the fitness of the current chromosome
        # It is not evaluated natively to reduce number of fitness function evaluations
-    X=Inp[4][0][0]
+    X= Inp[4][0][0]
     # 5) This is the fittest chromosome from the previous generation
-       # It is used for Global search (Minimal additional cost)
+       # It is used for Global search
    
 
     for _ in range(20):
@@ -297,7 +303,7 @@ def poprun(Inp):
 
         # Mut is now the Mutant Vector of population member L
 
-        Tri=deepcopy(Mut)
+        Tri=Mut
         # Trial Vector
         # Tri is the Trial Vector of the population member L
         # Initiate it to be the Mutant Vector
@@ -326,12 +332,24 @@ def poprun(Inp):
         for j in range(Cl):
             for k in range(Gl):
 
-                if (Tri[j][k][0]> A or Tri[j][k][0]<0):
+                if (Tri[j][k][0]> A+A/10 or Tri[j][k][0]<0-A/10):
                     Temp= 1
+                
+                elif (Tri[j][k][0]> A):
+                    Tri[j][k][0]= A
+
+                elif (Tri[j][k][0]< 0):
+                    Tri[j][k][0]= 0
                     
                 if j==0:
-                    if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
+                    if (Tri[j][k][1]>6.282+1 or Tri[j][k][1]<0-1):
                         Temp= 1
+
+                    elif(Tri[j][k][1]>6.282):
+                        Tri[j][k][1]= 6.282
+
+                    elif(Tri[j][k][1]< 0):
+                        Tri[j][k][1]= 0
 
                 if Temp==1:
                     break
@@ -363,6 +381,7 @@ def poprun(Inp):
         # that component with that of the population member
 
     Temp=fitnessFunction([Tri, i, Gn])
+    # Temp=ff(Tri)
     # Temp is used here to reduce the number of fitness function calls
 
     if(Temp<=Fiti):
@@ -403,10 +422,10 @@ def main():
     # This is a dictionary mapping integers to a unique Chromosome
     # Initiate it as an empty dictionary
 
-    FitnessSOM=[]
-    AfitSOM=[]
-    BfitSOM=[]
-    QvalSOM=[]
+    # FitnessSOM=[]
+    # AfitSOM=[]
+    # BfitSOM=[]
+    # QvalSOM=[]
 
     global Fitness
     Fitness=[]
@@ -426,6 +445,7 @@ def main():
     # Will be eliminated from the final code
 
     Qval=[]
+    Qavg=[]
     # Q Values List
     # This is a list of the Q values in every generation for plotting purposes
     # Will be eliminated from the final code
@@ -446,6 +466,9 @@ def main():
     # Input 1
     # This input is repeatedly used to send to the parallely processed function
     # The inner components will be explained further in the function itself
+
+
+    # Inpx=[[Pop[i], i, Gen] for i in range(Ps)]
 
 
     while Gn<Gs:
@@ -486,16 +509,7 @@ def main():
             # If the Trial Vector is fitter than the population member, replace
                 # the population member with the trial vector for the next generation,  
                 # else do nothing
-    
-        Best[0]=fittest()
-        print("Best= ", Best[0])
 
-        Afit.append(sum(Fitness)/float(Ps))
-        Bfit.append(Best[0][1])
-        Qval.append(Q(Pop[Best[0][0]]))
-
-        # Inpx=[[Pop[i], i, Gn] for i in range(Ps)]
-        # with Pool(processes= Pc) as pool:
             # result = pool.map_async(fitnessFunction, Inpx, chunksize= Ch)
 
             # Temp=0
@@ -506,6 +520,20 @@ def main():
                 # if Out<FitnessSOM[Temp]:
                     # FitnessSOM[Temp]=Out
                 # Temp=Temp+1
+    
+
+        Best[0]=fittest()
+        print("Best= ", Best[0])
+
+        Afit.append(sum(Fitness)/float(Ps))
+        Bfit.append(Best[0][1])
+
+        Temp=[]
+        for i in range(Ps):
+            Temp.append(Qval(Pop[i]))
+
+        Qval.append(Temp[Best[0][0]])
+        Qavg.append(sum(Temp)/Ps)
 
         # AfitSOM.append(sum(FitnessSOM)/float(Ps))
         # BfitSOM.append(min(FitnessSOM))
@@ -529,6 +557,7 @@ def main():
                     print(Afit[i], file=f, end=",")
                     print(Bfit[i], file=f, end=",")
                     print(Qval[i], file=f, end=",")
+                    print(Qavg[i], file=f, end="\n")
                     # print(AfitSOM[i], file=f, end=",")
                     # print(BfitSOM[i], file=f, end=",")
                     # print(QvalSOM[i], file=f, end="\n")
