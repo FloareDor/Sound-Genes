@@ -1,3 +1,5 @@
+import numpy as np
+
 import random as rd
 # This is used to for random number generation wherever neccessary
 
@@ -7,11 +9,11 @@ from copy import deepcopy
 
 ### HYPERPARAMETERS
 
-A= 175000000
+A= 200000000
 # Amplitude
 # This is the maximum amplitude or loudness
 
-Cp=0.8 # 0.95
+Cp= 0.95
 # Crossover Probability
 # This is the amount of crossover between the original vector and the mutant
     # vector used to create the trial vector
@@ -132,7 +134,7 @@ def fitnessFunction(Inp):
     rasaNumber=1
 
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
-    chromosome_copy = deepcopy(chromosome)
+    chromosome_copy = deepcopy(chromosome).tolist()
 
     for j in range(1,Cl):
         for k in range(Gl):
@@ -172,8 +174,6 @@ def Q(L):
 def chrm(new_or_cont, i):
 # Random Chromosome Generator
 # Creates a random chromosome with the permissible boundary values
-    import numpy as np
-
     if new_or_cont==0:
 
         Rasas=[
@@ -195,7 +195,7 @@ def chrm(new_or_cont, i):
             else:
                 L+=probabilities[z]*T
 
-        L=L.tolist()
+        L=np.array(L, dtype= "float32")
     
         return L
 
@@ -204,7 +204,7 @@ def chrm(new_or_cont, i):
         loaded = np.load(f'./final_chromosomes/L{i}.npz')
         L=loaded['arr_0']
 
-        L=L.tolist()
+        L=np.array(L, dtype= "float32")
 
         return L
 
@@ -272,6 +272,11 @@ def poprun(Inp):
         # This is the Mutant Vector of population member index i
         # Initiate it as a random chromosome
 
+        Tri= deepcopy(Mut)
+        # Trial Vector
+        # Tri is the Trial Vector of the population member L
+        # Initiate it to be the Mutant Vector
+
         F=rd.uniform(-Fr[0], Fr[0])
         # Coefficient used to generate the mutant vector
 
@@ -285,47 +290,26 @@ def poprun(Inp):
         # The above are used to choose population vectors to mutate the original 
             # vector with
         
-        for j in range(Cl):
-            for k in range(Gl):
-
-                if j==0:
-                    for l in range(2):
-                        Mut[j][k][l]= Mut[j][k][l]+K*(Pop[X][j][k][l]-Pop[i][j][k][l])+F*(Pop[y][j][k][l]-Pop[z][j][k][l])
-                else:
-                    Mut[j][k][0]= Mut[j][k][0]+K*(Pop[X][j][k][0]-Pop[i][j][k][0])+F*(Pop[y][j][k][0]-Pop[z][j][k][0])
-
-                    # The above is a direct formula used to create mutant vectors in DE
+        Mut+= K*(Pop[X]-Pop[i])+F*(Pop[y]-Pop[z])
 
         # Mut is now the Mutant Vector of population member L
 
-        Tri=Mut
-        # Trial Vector
-        # Tri is the Trial Vector of the population member L
-        # Initiate it to be the Mutant Vector
+        Temp= 0
 
         for j in range(Cl):
             for k in range(Gl):
 
                 if j==0:
                     for l in range(2):
-                        if (rd.uniform(0,1)> Cp):
-                            Tri[j][k][l]= Pop[i][j][k][l]
+                        if (rd.uniform(0,1)< Cp):
+                            Tri[j][k][l]= Mut[j][k][l]
 
                 else:
-                    if (rd.uniform(0,1)> Cp):
-                        Tri[j][k][0]= Pop[i][j][k][0]
+                    if (rd.uniform(0,1)< Cp):
+                        Tri[j][k][0]= Mut[j][k][0]
 
                     # Here as the Tri is the same as Mut initially, elements of Tri
                         # are restored to the value of L with a probability of 1-Cp
-
-        # Tri is now the Trial Vector of the population member L
-
-        Temp= 0
-        # Temporary Variable
-        # Used for a variety of basic tasks
-
-        for j in range(Cl):
-            for k in range(Gl):
 
                 if (Tri[j][k][0]> A+A/10 or Tri[j][k][0]<0-A/10):
                     Temp= 1
@@ -355,6 +339,7 @@ def poprun(Inp):
         if Temp==0:
             break
 
+        # Tri is now the Trial Vector of the population member L
         # If none of the constraints are violated (Temp==0) then break, else revaluate
             # from the mutation vector
 
@@ -392,6 +377,10 @@ def loccro(Inp):
 
 
     i=Inp[0]
+
+    if i+1==Ps:
+        return 0
+
     Gn=Inp[1][0]
     Pop=Inp[2]
     # Fiti requires the arguments from Inp[4]
@@ -405,18 +394,20 @@ def loccro(Inp):
 
     R=rd.uniform(0,1)
 
-    for j in range(Cl):
-        for k in range(Gl):
+    Cro+= R*(Pop[Ind1]-Cro)
+
+#     for j in range(Cl):
+        # for k in range(Gl):
             
-            if j==0:
-                for l in range(2):
-                    Cro[j][k][l]= Cro[j][k][l]+R*(Pop[Ind2][j][k][l]-Cro[j][k][l])
+            # if j==0:
+                # for l in range(2):
+                    # Cro[j][k][l]= Cro[j][k][l]+R*(Pop[Ind2][j][k][l]-Cro[j][k][l])
             
-            else:
-                Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
+            # else:
+                # Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
 
 
-    Temp=fitnessFunction([Cro, i, Gn])
+    Temp=fitnessFunction([Cro, Ind1, Gn])
 
     if(Temp<=Fiti):
         return [Cro, Temp]
@@ -454,17 +445,17 @@ def locmut(Inp):
                     x=rd.randint(0,1)
 
                     if x==0:
-                        Mut[j][k][l]= Mut[j][k][l]+R*Cyc*Pm*(Max[j][k][l]-Mut[j][k][l])
+                        Mut[j][k][l]+= R*Cyc*Pm*(Max[j][k][l]-Mut[j][k][l])
                     else:
-                        Mut[j][k][l]= Mut[j][k][l]+R*Cyc*Pm*(Min[j][k][l]-Mut[j][k][l])
+                        Mut[j][k][l]+= R*Cyc*Pm*(Min[j][k][l]-Mut[j][k][l])
             
             else:
                 x=rd.randint(0,1)
 
                 if x==0:
-                    Mut[j][k][0]= Mut[j][k][0]+R*Cyc*Pm*(Max[j][k][0]-Mut[j][k][0])
+                    Mut[j][k][0]+= R*Cyc*Pm*(Max[j][k][0]-Mut[j][k][0])
                 else:
-                    Mut[j][k][0]= Mut[j][k][0]+R*Cyc*Pm*(Min[j][k][0]-Mut[j][k][0])
+                    Mut[j][k][0]+= R*Cyc*Pm*(Min[j][k][0]-Mut[j][k][0])
 
 
     Temp=fitnessFunction([Mut, i, Gn])
@@ -476,12 +467,53 @@ def locmut(Inp):
     else:
         return 0
         # If failure, return 0
-    
+
+
+def localsearch(Inp):
+
+    Inp1= Inp[0]
+    Inp2= Inp[1]
+    Inp3= Inp[2]
+
+    i=Inp1[0]
+    Pop=Inp1[2]
+    Fitness=Inp1[3]
+    Gn=Inp1[1][0]
+    Indsort=Inp2[4]
+
+    Out= poprun(Inp1)
+    if Out!=0:
+
+        Pop[i]=Out[0]
+
+        Fitness[i]=Out[1]
+
+
+    if Gn>Lt:
+
+        Out= loccro(Inp2)
+
+        if Out!=0:
+
+            Pop[Indsort[i]]=Out[0]
+
+            Fitness[Indsort[i]]=Out[1]
+                    
+
+        Out= locmut(Inp3)
+        if Out!=0:
+
+            Pop[i]=Out[0]
+
+            Fitness[i]=Out[1]
+
+    return
+
 
 
 def main():
 
-    from multiprocessing import Pool
+    from multiprocessing import Pool, Manager
     # This is a crucial library used to implement parallel processing in the algorithm
 
     import time
@@ -499,17 +531,19 @@ def main():
     # This library is used to create/check folders/directories
 
 
-
     Start= time.time()
 
+
+    manager= Manager()
+
     global Pop
-    Pop={}
+    Pop= manager.dict()
     # Population Dictionary
     # This is a dictionary mapping integers to a unique Chromosome
     # Initiate it as an empty dictionary
 
     global Fitness
-    Fitness=[]
+    Fitness= manager.list()
     # Fitness List
     # This is a list that stores the fitness of every population member at any given time
     # Initiate it as an empty list
@@ -547,13 +581,15 @@ def main():
 
     Ind=[i for i in range(0, Ps)]
     Indsort=deepcopy(Ind)
-    Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps-1)]
+    Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps)]
 
     Min=deepcopy(Pop[0])
     Max=deepcopy(Pop[0])
     Pm=[0]*Ps
     Cyc=[0]
     Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
+
+    Inp=[[Inp1[i], Inp2[i], Inp3[i]] for i in range(Ps)]
 
 
     while Gn<Gs:
@@ -572,54 +608,27 @@ def main():
         with Pool(processes= Pc) as pool:
         # Create an instance of the pool process and call it "pool"
 
-            result = pool.map_async(poprun, Inp1, chunksize= Ch)
+            result = pool.map_async(localsearch, Inp, chunksize= Ch)
             # For every population member, initiate poprun with parallel processing
             # The outputs will be stored in the generator "result"
 
             Temp=0
             # Temporary variable used for iterations as the variable i is occupied
-            for Out in result.get():
+            for _ in result.get():
             # ".get()" is used to extract outputs from a generator
-
-                if Out!=0:
-                # Function returns 0 if fitness of parent is greater
-
-                    Pop[Temp]=Out[0]
-                    # Change the population member to it's child
-
-                    Fitness[Temp]=Out[1]
-                    # Change the corresponding fitness to the child's fitness
-                    
-                Temp=Temp+1
-
-            # If the Trial Vector is fitter than the population member, replace
-                # the population member with the trial vector for the next 
-                # generation, else do nothing
+                
+                pass
 
             if Gn>Lt:
             # If Local Search Threshold is surpassed, perform Local Search as well
-
 
                 Junk,Temp=zip(*sorted(zip(Fitness, Ind)))
                 # Sorted in descending order as lower fitness is better
 
                 for i in range(0, Ps):
                     Indsort[i]=Temp[i]
-                    # The above step is crucial so that Indsort in Inp2 does not get changed
 
                     Pm[Temp[i]]=i
-
-
-                result = pool.map_async(loccro, Inp2, chunksize=Ch)
-
-                Temp=1
-                for Out in result.get():
-
-                    if Out!=0:
-                        Pop[Indsort[Temp]]=Out[0]
-                        Fitness[Indsort[Temp]]=Out[1]
-                    
-                    Temp=Temp+1
 
 
                 for i in range(Ps):
@@ -641,17 +650,6 @@ def main():
                                 elif(Pop[i][j][k][0]>Max[j][k][0]):
                                     Max[j][k][0]= Pop[i][j][k][0]
 
-
-                result = pool.map_async(locmut, Inp3, chunksize=Ch)
-
-                Temp=0
-                for Out in result.get():
-
-                    if Out!=0:
-                        Pop[Temp]=Out[0]
-                        Fitness[Temp]=Out[1]
-                    
-                    Temp=Temp+1
 
 
         Best[0]=fittest()

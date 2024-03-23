@@ -1,3 +1,5 @@
+import numpy as np
+
 import random as rd
 # This is used to for random number generation wherever neccessary
 
@@ -7,11 +9,11 @@ from copy import deepcopy
 
 ### HYPERPARAMETERS
 
-A= 175000000
+A= 200000000
 # Amplitude
 # This is the maximum amplitude or loudness
 
-Cp=0.8 # 0.95
+Cp= 0.95
 # Crossover Probability
 # This is the amount of crossover between the original vector and the mutant
     # vector used to create the trial vector
@@ -124,7 +126,7 @@ def fitnessFunction(Inp):
     rasaNumber=1
 
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
-    chromosome_copy = deepcopy(chromosome)
+    chromosome_copy = deepcopy(chromosome).tolist()
 
     for j in range(1,Cl):
         for k in range(Gl):
@@ -177,8 +179,6 @@ def Q(L):
 def chrm(new_or_cont, i):
 # Random Chromosome Generator
 # Creates a random chromosome with the permissible boundary values
-    import numpy as np
-
     if new_or_cont==0:
 
         Rasas=[
@@ -199,9 +199,9 @@ def chrm(new_or_cont, i):
                 L=probabilities[z]*T
             else:
                 L+=probabilities[z]*T
-
-        L=L.tolist()
     
+        L=np.array(L, dtype= "float32")
+
         return L
 
     else:
@@ -209,7 +209,7 @@ def chrm(new_or_cont, i):
         loaded = np.load(f'./final_chromosomes/L{i}.npz')
         L=loaded['arr_0']
 
-        L=L.tolist()
+        L=np.array(L, dtype= "float32")
 
         return L
 
@@ -289,67 +289,40 @@ def poprun(Inp):
             
         # The above are used to choose population vectors to mutate the original 
             # vector with
-        
+
+        Temp= 0
+
         for j in range(Cl):
             for k in range(Gl):
 
                 if j==0:
                     for l in range(2):
-                        Mut[j][k][l]= Mut[j][k][l]+K*(Pop[X][j][k][l]-Pop[i][j][k][l])+F*(Pop[y][j][k][l]-Pop[z][j][k][l])
+                        if (rd.uniform(0,1) < Cp):
+                            Mut[j][k][l]+= K*(Pop[X][j][k][l]-Pop[i][j][k][l])+F*(Pop[y][j][k][l]-Pop[z][j][k][l])
                 else:
-                    Mut[j][k][0]= Mut[j][k][0]+K*(Pop[X][j][k][0]-Pop[i][j][k][0])+F*(Pop[y][j][k][0]-Pop[z][j][k][0])
+                    if (rd.uniform(0,1) < Cp):
+                        Mut[j][k][0]+= K*(Pop[X][j][k][0]-Pop[i][j][k][0])+F*(Pop[y][j][k][0]-Pop[z][j][k][0])
 
                     # The above is a direct formula used to create mutant vectors in DE
 
-        # Mut is now the Mutant Vector of population member L
-
-        Tri=Mut
-        # Trial Vector
-        # Tri is the Trial Vector of the population member L
-        # Initiate it to be the Mutant Vector
-
-        for j in range(Cl):
-            for k in range(Gl):
-
-                if j==0:
-                    for l in range(2):
-                        if (rd.uniform(0,1)> Cp):
-                            Tri[j][k][l]= Pop[i][j][k][l]
-
-                else:
-                    if (rd.uniform(0,1)> Cp):
-                        Tri[j][k][0]= Pop[i][j][k][0]
-
-                    # Here as the Tri is the same as Mut initially, elements of Tri
-                        # are restored to the value of L with a probability of 1-Cp
-
-        # Tri is now the Trial Vector of the population member L
-
-        Temp= 0
-        # Temporary Variable
-        # Used for a variety of basic tasks
-
-        for j in range(Cl):
-            for k in range(Gl):
-
-                if (Tri[j][k][0]> A+A/10 or Tri[j][k][0]<0-A/10):
+                if (Mut[j][k][0]> A+A/10 or Mut[j][k][0]<0-A/10):
                     Temp= 1
                 
-                elif (Tri[j][k][0]> A):
-                    Tri[j][k][0]= A
+                elif (Mut[j][k][0]> A):
+                    Mut[j][k][0]= A
 
-                elif (Tri[j][k][0]< 0):
-                    Tri[j][k][0]= 0
+                elif (Mut[j][k][0]< 0):
+                    Mut[j][k][0]= 0
                     
                 if j==0:
-                    if (Tri[j][k][1]>6.282+1 or Tri[j][k][1]<0-1):
+                    if (Mut[j][k][1]>6.282+1 or Mut[j][k][1]<0-1):
                         Temp= 1
 
-                    elif(Tri[j][k][1]>6.282):
-                        Tri[j][k][1]= 6.282
+                    elif(Mut[j][k][1]>6.282):
+                        Mut[j][k][1]= 6.282
 
-                    elif(Tri[j][k][1]< 0):
-                        Tri[j][k][1]= 0
+                    elif(Mut[j][k][1]< 0):
+                        Mut[j][k][1]= 0
 
                 if Temp==1:
                     break
@@ -360,32 +333,29 @@ def poprun(Inp):
         if Temp==0:
             break
 
-        # If none of the constraints are violated (Temp==0) then break, else revaluate
-            # from the mutation vector
-
 
     if Temp!=0:
         for j in range(Cl):
             for k in range(Gl):
 
-                if (Tri[j][k][0]> A or Tri[j][k][0]<0):
+                if (Mut[j][k][0]> A or Mut[j][k][0]<0):
 
-                    Tri[j][k][0]=Pop[i][j][k][0]
+                    Mut[j][k][0]=Pop[i][j][k][0]
                     
                 if j==0:
-                    if (Tri[j][k][1]>6.282 or Tri[j][k][1]<0):
+                    if (Mut[j][k][1]>6.282 or Mut[j][k][1]<0):
 
-                        Tri[j][k][1]=Pop[i][j][k][1]
+                        Mut[j][k][1]=Pop[i][j][k][1]
 
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gn])
-    # Temp=ff(Tri)
+    Temp=fitnessFunction([Mut, i, Gn])
+    # Temp=ff(Mut)
     # Temp is used here to reduce the number of fitness function calls
 
     if(Temp<=Fiti):
-        return [Tri, Temp]
+        return [Mut, Temp]
         # If successful, return the child chromosome as well as it's fitness
         
     else:
@@ -530,7 +500,7 @@ def main():
 
         Temp=[]
         for i in range(Ps):
-            Temp.append(Qval(Pop[i]))
+            Temp.append(Q(Pop[i]))
 
         Qval.append(Temp[Best[0][0]])
         Qavg.append(sum(Temp)/Ps)
