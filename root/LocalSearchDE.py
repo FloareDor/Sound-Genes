@@ -37,7 +37,7 @@ Ps= 5
 Gs= 2
 # Generation Size
 
-new_or_cont= 0
+new_or_cont= 1
 
 Lt= 0
 # Local Search Threshold
@@ -378,14 +378,14 @@ def loccro(Inp):
 
     i=Inp[0]
 
-    if i+1==Ps:
+    if i==0:
         return 0
 
     Gn=Inp[1][0]
     Pop=Inp[2]
     # Fiti requires the arguments from Inp[4]
     Ind1=Inp[4][i]
-    Ind2=Inp[4][i+1]
+    Ind2=Inp[4][i-1]
 
     Fiti=Inp[3][Ind2]
 
@@ -407,7 +407,7 @@ def loccro(Inp):
                 # Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
 
 
-    Temp=fitnessFunction([Cro, Ind1, Gn])
+    Temp=fitnessFunction([Cro, i, Gn])
 
     if(Temp<=Fiti):
         return [Cro, Temp]
@@ -488,6 +488,8 @@ def localsearch(Inp):
 
         Fitness[i]=Out[1]
 
+    os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
+    os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
 
     if Gn>Lt:
 
@@ -499,6 +501,9 @@ def localsearch(Inp):
 
             Fitness[Indsort[i]]=Out[1]
                     
+        if i!=0:
+            os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
+            os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
 
         Out= locmut(Inp3)
         if Out!=0:
@@ -608,17 +613,6 @@ def main():
         with Pool(processes= Pc) as pool:
         # Create an instance of the pool process and call it "pool"
 
-            result = pool.map_async(localsearch, Inp, chunksize= Ch)
-            # For every population member, initiate poprun with parallel processing
-            # The outputs will be stored in the generator "result"
-
-            Temp=0
-            # Temporary variable used for iterations as the variable i is occupied
-            for _ in result.get():
-            # ".get()" is used to extract outputs from a generator
-                
-                pass
-
             if Gn>Lt:
             # If Local Search Threshold is surpassed, perform Local Search as well
 
@@ -631,25 +625,35 @@ def main():
                     Pm[Temp[i]]=i
 
 
+                Popcopy=deepcopy(Pop)
+
                 for i in range(Ps):
                     for j in range(Cl):
                         for k in range(Gl):
 
                             if j==0:
                                 for l in range(2):
-                                    if (Pop[i][j][k][l]<Min[j][k][l]):
-                                        Min[j][k][l]= Pop[i][j][k][l]
+                                    if (Popcopy[i][j][k][l]<Min[j][k][l]):
+                                        Min[j][k][l]= Popcopy[i][j][k][l]
                         
-                                    elif(Pop[i][j][k][l]>Max[j][k][l]):
-                                        Max[j][k][l]= Pop[i][j][k][l]
+                                    elif(Popcopy[i][j][k][l]>Max[j][k][l]):
+                                        Max[j][k][l]= Popcopy[i][j][k][l]
 
                             else:
-                                if (Pop[i][j][k][0]<Min[j][k][0]):
-                                    Min[j][k][0]= Pop[i][j][k][0]
+                                if (Popcopy[i][j][k][0]<Min[j][k][0]):
+                                    Min[j][k][0]= Popcopy[i][j][k][0]
                         
-                                elif(Pop[i][j][k][0]>Max[j][k][0]):
-                                    Max[j][k][0]= Pop[i][j][k][0]
+                                elif(Popcopy[i][j][k][0]>Max[j][k][0]):
+                                    Max[j][k][0]= Popcopy[i][j][k][0]
 
+            result = pool.map_async(localsearch, Inp, chunksize= Ch)
+            # For every population member, initiate poprun with parallel processing
+            # The outputs will be stored in the generator "result"
+
+            for _ in result.get():
+            # ".get()" is used to extract outputs from a generator
+                
+                pass
 
 
         Best[0]=fittest()
@@ -660,7 +664,7 @@ def main():
 
         Temp=[]
         for i in range(Ps):
-            Temp.append(Qval(Pop[i]))
+            Temp.append(Q(Pop[i]))
 
         Qval.append(Temp[Best[0][0]])
         Qavg.append(sum(Temp)/Ps)
@@ -710,6 +714,10 @@ def main():
                 os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
                 os.remove(f'./features_output/gen{Gn}-{i}_all_features.json')
 
+
+    for i in range(Ps):
+        Array= np.array(Pop[i], dtype="float32")
+        np.savez_compressed(f"./final_chromosomes/L{i}.npz", Array)
 
     End= time.time()
 
