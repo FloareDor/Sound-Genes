@@ -6,10 +6,9 @@ import random as rd
 from copy import deepcopy
 # This is a crucial library used to create perfect copies of chromosomes
 
-import os
+import os   
 # This library is used to create/check folders/directories
 # creating output directories if they do not exist
-
 
 ### HYPERPARAMETERS
 
@@ -38,10 +37,10 @@ Gc= 50
 Ps= 5
 # Population Size
 
-Gs= 3
+Gs= 2
 # Generation Size
 
-new_or_cont= 0
+new_or_cont= 1
 
 Lt= 0
 # Local Search Threshold
@@ -101,7 +100,13 @@ from som.som_class import SOM
 som = SOM()
 # Initialization of Self-Organizing-Map
 
-
+# Use the below code if there are multiple ffs
+ff1i=1.35 # Average value of ff1
+ff2i=6.4*10000000 # Average value of ff1
+s1=1
+s2=ff1i/ff2i
+w1=0.85 # Weight of ff1
+w2=0.15 # Weight of ff2
 
 
 def fitnessFunction(Inp):
@@ -128,8 +133,6 @@ def fitnessFunction(Inp):
     chromosome=Inp[0]
     index=Inp[1]
     generation=Inp[2]
-    # generation=Inp[2][0]
-    s2= Inp[3]
     rasaNumber=1
 
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
@@ -148,14 +151,9 @@ def fitnessFunction(Inp):
     # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
-    # return fitnessValue**2
+    qValue= Q(chromosome)
 
-    # Use the below code if there are multiple ffs
-    s1=1
-    w1=0.85 # Weight of ff1
-    w2=0.15 # Weight of ff2
-
-    return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
+    return [w1*s1*(fitnessValue**2)+w2*s2*qValue, fitnessValue, qValue]
 
 
 def Q(L):
@@ -186,6 +184,7 @@ def chrm(new_or_cont, i):
         rd.choice([33, 36, 37, 38, 39]),
         rd.choice([47, 48, 49, 50, 51, 59])
         ]
+
 
         probabilities= [np.random.uniform(0.25, 0.75) for z in range(4)]
         probabilities= [z/sum(probabilities) for z in probabilities]
@@ -223,15 +222,16 @@ def popinit(new_or_cont):
     for i in range(Ps):
         Pop[i]=chrm(new_or_cont, i)
         
-    Inp=[[Pop[i], i, 0, 2/(1.4*100000000)] for i in range(Ps)]
-    # Inp=[Pop[i] for i in range(Ps)]
+    Inp=[[Pop[i], i, 0] for i in range(Ps)]
 
     with Pool(processes= Pc) as pool:
 
         result = pool.map_async(fitnessFunction, Inp, chunksize= Ch)
 
         for Out in result.get():
-            Fitness.append(Out)
+            Fitness.append(Out[0])
+            SFitness.append(Out[1])
+            QFitness.append(Out[2])
 
     # Every element in Pop is a Chromosome indexed from an integer from 0 to Ps
 
@@ -266,17 +266,18 @@ def poprun(Inp):
     X= Inp[4][0][0]
     # 5) This is the fittest chromosome from the previous generation
        # It is used for Global search
-    s2= Inp[5][0]
+   
+    Local_Copy= deepcopy(Pop[i])
 
     for _ in range(20):
     # This is the maximum number of times the chromosome should be revaluated if it is out of bounds
 
-        Mut=deepcopy(Pop[i])
+        Mut=deepcopy(Local_Copy)
         # Mutant Vector
         # This is the Mutant Vector of population member index i
         # Initiate it as a random chromosome
 
-        Tri= deepcopy(Mut)
+        Tri= deepcopy(Local_Copy)
         # Trial Vector
         # Tri is the Trial Vector of the population member L
         # Initiate it to be the Mutant Vector
@@ -295,6 +296,7 @@ def poprun(Inp):
             # vector with
         
         Mut+= K*(Pop[X]-Pop[i])+F*(Pop[y]-Pop[z])
+        # There's a reason it is done in the above way!!
 
         # Mut is now the Mutant Vector of population member L
 
@@ -364,11 +366,11 @@ def poprun(Inp):
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gn, s2])
+    Temp=fitnessFunction([Tri, i, Gn])
     # Temp=ff(Tri)
     # Temp is used here to reduce the number of fitness function calls
 
-    if(Temp<=Fiti):
+    if(Temp[0]<=Fiti):
         return [Tri, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
@@ -392,29 +394,18 @@ def loccro(Inp):
     Ind2=Inp[4][i-1]
 
     Fiti=Inp[3][Ind2]
-    s2= Inp[5][0]
 
 
     Cro=deepcopy(Pop[Ind1])
 
     R=rd.uniform(0,1)
 
-    Cro+= R*(Pop[Ind1]-Cro)
-
-#     for j in range(Cl):
-        # for k in range(Gl):
-            
-            # if j==0:
-                # for l in range(2):
-                    # Cro[j][k][l]= Cro[j][k][l]+R*(Pop[Ind2][j][k][l]-Cro[j][k][l])
-            
-            # else:
-                # Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
+    Cro+= R*(Pop[Ind2]-Cro)
 
 
-    Temp=fitnessFunction([Cro, i, Gn, s2])
+    Temp=fitnessFunction([Cro, i, Gn])
 
-    if(Temp<=Fiti):
+    if(Temp[0]<=Fiti):
         return [Cro, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
@@ -434,7 +425,6 @@ def locmut(Inp):
     Max=Inp[4][1]
     Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
     Cyc=Inp[4][3][0]
-    s2= Inp[5][0]
 
 
     Mut=deepcopy(Pop[i])
@@ -442,10 +432,12 @@ def locmut(Inp):
 
     for j in range(Cl):
         for k in range(Gl):
+            
+            R=rd.uniform(0,1)
+
             if j==0:
                 for l in range(2):
                 
-                    R=rd.uniform(0,1)
                     x=rd.randint(0,1)
 
                     if x==0:
@@ -454,7 +446,6 @@ def locmut(Inp):
                         Mut[j][k][l]+= R*Cyc*Pm*(-Min[j][k][l]+Mut[j][k][l])
             
             else:
-                R=rd.uniform(0,1)
                 x=rd.randint(0,1)
 
                 if x==0:
@@ -463,9 +454,9 @@ def locmut(Inp):
                     Mut[j][k][0]+= R*Cyc*Pm*(-Min[j][k][0]+Mut[j][k][0])
 
 
-    Temp=fitnessFunction([Mut, i, Gn, s2])
+    Temp=fitnessFunction([Mut, i, Gn])
 
-    if(Temp<=Fiti):
+    if(Temp[0]<=Fiti):
         return [Mut, Temp]
         # If successful, return the child chromosome as well as it's fitness
 
@@ -479,20 +470,26 @@ def localsearch(Inp):
     Inp1= Inp[0]
     Inp2= Inp[1]
     Inp3= Inp[2]
-    
+    Inp4= Inp[3]
+
 
     i=Inp1[0]
     Pop=Inp1[2]
     Fitness=Inp1[3]
     Gn=Inp1[1][0]
     Indsort=Inp2[4]
+    SFitness=Inp4[0]
+    QFitness=Inp4[1]
+
 
     Out= poprun(Inp1)
     if Out!=0:
 
         Pop[i]=Out[0]
 
-        Fitness[i]=Out[1]
+        Fitness[i]=Out[1][0]
+        SFitness[i]=Out[1][1]
+        QFitness[i]=Out[1][2]
 
     os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
     os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
@@ -505,18 +502,23 @@ def localsearch(Inp):
 
             Pop[Indsort[i]]=Out[0]
 
-            Fitness[Indsort[i]]=Out[1]
+            Fitness[Indsort[i]]=Out[1][0]
+            SFitness[Indsort[i]]=Out[1][1]
+            QFitness[Indsort[i]]=Out[1][2]
                     
         if i!=0:
             os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
             os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
+
 
         Out= locmut(Inp3)
         if Out!=0:
 
             Pop[i]=Out[0]
 
-            Fitness[i]=Out[1]
+            Fitness[i]=Out[1][0]
+            SFitness[i]=Out[1][1]
+            QFitness[i]=Out[1][2]
 
     return
 
@@ -534,12 +536,6 @@ def main():
     matplotlib.use('Agg')
     from matplotlib import pyplot as plt
     # This is used for plotting purposes
-
-    import numpy as np
-    # This is used for some calculations
-
-    import os
-    # This library is used to create/check folders/directories
 
 
     Start= time.time()
@@ -563,18 +559,26 @@ def main():
     Bfit=[]
     # Best Fitness List
     # This is a list of the best fitness in every generation for plotting purposes
-    # Will be eliminated from the final code
 
     Afit=[]
     # Average Fitness List
     # This is a list of the average fitness in every generation for plotting purposes
-    # Will be eliminated from the final code
+
+    global SFitness
+    SFitness= manager.list()
+    # SOM Fitness of all population members
+
+    Sval=[]
+    # SOM Fitness of fittest population member
+    Savg=[]
+
+    global QFitness
+    QFitness= manager.list()
+    # Q Fitness of all population members
 
     Qval=[]
+    # Q Fitness of fittest population member
     Qavg=[]
-    # Q Values List
-    # This is a list of the Q values in every generation for plotting purposes
-    # Will be eliminated from the final code
 
 
     popinit(new_or_cont)
@@ -585,22 +589,25 @@ def main():
     # Generation Number
     # Counts down the generations
 
-    s2= [2/(1.4*100000000)]
+
     Best=[fittest()]
     Gen=[Gn,Gc]
-    Inp1=[[i, Gen, Pop, Fitness, Best, s2] for i in range(0, Ps)]
+    Inp1=[[i, Gen, Pop, Fitness, Best] for i in range(0, Ps)]
 
     Ind=[i for i in range(0, Ps)]
     Indsort=deepcopy(Ind)
-    Inp2=[[i, Gen, Pop, Fitness, Indsort, s2] for i in range(0, Ps)]
+    Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps)]
 
     Min=deepcopy(Pop[0])
     Max=deepcopy(Pop[0])
     Pm=[0]*Ps
     Cyc=[0]
-    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc], s2] for i in range(0, Ps)]
+    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
 
-    Inp=[[Inp1[i], Inp2[i], Inp3[i]] for i in range(Ps)]
+    Inp4=[[SFitness, QFitness] for i in range(Ps)]
+
+
+    Inp=[[Inp1[i], Inp2[i], Inp3[i], Inp4[i]] for i in range(Ps)]
 
 
     while Gn<Gs:
@@ -609,11 +616,8 @@ def main():
     # Run the while loop Gs times
     # This imitates Gs Generations of Evolution
 
-        # Fr[0]=Fr[0]/1.01
-        # The above line of code can be used to change the value of F progressively
-
         Gen[0]= Gn
-        Cyc[0]= (np.exp(-2*Gn/Gc))/(1+np.exp(-1*((Gc/2)-Gn)))
+        Cyc[0]= np.exp(-2*(Gn%Gc)/Gc)* 1/(1+np.exp(-1*((Gc/2)-(Gn%Gc))))
 
 
         with Pool(processes= Pc) as pool:
@@ -630,27 +634,39 @@ def main():
 
                     Pm[Temp[i]]=i
 
+                if Gn%10==1:
 
-                Popcopy=deepcopy(Pop)
+                    Popcopy=deepcopy(Pop)
 
-                for i in range(Ps):
-                    for j in range(Cl):
-                        for k in range(Gl):
+                    for i in range(Ps):
+                        for j in range(Cl):
+                            for k in range(Gl):
 
-                            if j==0:
-                                for l in range(2):
-                                    if (Popcopy[i][j][k][l]<Min[j][k][l]):
-                                        Min[j][k][l]= Popcopy[i][j][k][l]
+                                if i==0:
+                                    if j==0:
+                                        for l in range(2):
+                                            Min[j][k][l]= Popcopy[i][j][k][l]
+                                            Max[j][k][l]= Popcopy[i][j][k][l]
+
+                                    else:
+                                        Min[j][k][0]= Popcopy[i][j][k][0]                               
+                                        Max[j][k][0]= Popcopy[i][j][k][0]
+
+
+                                if j==0:
+                                    for l in range(2):
+                                        if (Popcopy[i][j][k][l]<Min[j][k][l]):
+                                            Min[j][k][l]= Popcopy[i][j][k][l]
                         
-                                    elif(Popcopy[i][j][k][l]>Max[j][k][l]):
-                                        Max[j][k][l]= Popcopy[i][j][k][l]
+                                        elif(Popcopy[i][j][k][l]>Max[j][k][l]):
+                                            Max[j][k][l]= Popcopy[i][j][k][l]
 
-                            else:
-                                if (Popcopy[i][j][k][0]<Min[j][k][0]):
-                                    Min[j][k][0]= Popcopy[i][j][k][0]
+                                else:
+                                    if (Popcopy[i][j][k][0]<Min[j][k][0]):
+                                        Min[j][k][0]= Popcopy[i][j][k][0]
                         
-                                elif(Popcopy[i][j][k][0]>Max[j][k][0]):
-                                    Max[j][k][0]= Popcopy[i][j][k][0]
+                                    elif(Popcopy[i][j][k][0]>Max[j][k][0]):
+                                        Max[j][k][0]= Popcopy[i][j][k][0]
 
             result = pool.map_async(localsearch, Inp, chunksize= Ch)
             # For every population member, initiate poprun with parallel processing
@@ -663,32 +679,26 @@ def main():
 
 
         Best[0]=fittest()
-        print("Best= ", Best[0])
 
         Afit.append(sum(Fitness)/float(Ps))
         Bfit.append(Best[0][1])
 
-        Temp=[]
-        for i in range(Ps):
-            Temp.append(Q(Pop[i]))
+        Sval.append(SFitness[Best[0][0]])
+        Savg.append(sum(SFitness)/Ps)
 
-        Qval.append(Temp[Best[0][0]])
-        Qavg.append(sum(Temp)/Ps)
+        Qval.append(QFitness[Best[0][0]])
+        Qavg.append(sum(QFitness)/Ps)
 
-        s2[0]= Afit[-1]/Qavg[-1]
+        print("Best= ", Best[0], Sval[-1], Qval[-1])
 
-        # AfitSOM.append(sum(FitnessSOM)/float(Ps))
-        # BfitSOM.append(min(FitnessSOM))
-        # QvalSOM.append(Q(Pop[FitnessSOM.index(BfitSOM[-1])]))
 
         if(Gn%5==0):
             plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
             plt.plot(range(0,len(Bfit)), Bfit, label="Best Fitness")
-            plt.plot(range(0,len(Qval)), Qval, label="Q value")
             plt.xlabel("Number of Generations")
             plt.ylabel("Fitness")
             plt.legend(loc="upper right")
-            plt.savefig(f"graphs/Graph-Ps={Ps}-Gs={Gs}-LSDE.png")
+            plt.savefig(f"graphs/Graph.png")
             plt.close()
         
 
@@ -697,12 +707,10 @@ def main():
                 for i in range(len(Qval)):
                     print(Afit[i], file=f, end=",")
                     print(Bfit[i], file=f, end=",")
+                    print(Sval[i], file=f, end=",")
+                    print(Savg[i], file=f, end=",")
                     print(Qval[i], file=f, end=",")
                     print(Qavg[i], file=f, end="\n")
-                    # print(AfitSOM[i], file=f, end=",")
-                    # print(BfitSOM[i], file=f, end=",")
-                    # print(QvalSOM[i], file=f, end="\n")
-
 
 
             if (Gn%50==0):
