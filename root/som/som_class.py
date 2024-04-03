@@ -31,7 +31,7 @@ class SOM:
         #self.som = self.train(self.X_std, self.train_x, self.test_x, self.train_y, self.test_y)
         #self.label_map = self.labelMap(self.som, self.X_std, self.y, self.train_x, self.train_y, self.num_rows, self.num_cols)
 
-        self.test(self.train_x, self.test_x, self.test_y, self.X_std)
+        #self.test(self.train_x, self.test_x, self.test_y, self.X_std)
         
 
     def loadData(self):

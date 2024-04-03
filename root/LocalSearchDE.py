@@ -6,6 +6,10 @@ import random as rd
 from copy import deepcopy
 # This is a crucial library used to create perfect copies of chromosomes
 
+import os
+# This library is used to create/check folders/directories
+# creating output directories if they do not exist
+
 
 ### HYPERPARAMETERS
 
@@ -34,10 +38,10 @@ Gc= 50
 Ps= 5
 # Population Size
 
-Gs= 2
+Gs= 3
 # Generation Size
 
-new_or_cont= 1
+new_or_cont= 0
 
 Lt= 0
 # Local Search Threshold
@@ -97,13 +101,7 @@ from som.som_class import SOM
 som = SOM()
 # Initialization of Self-Organizing-Map
 
-# Use the below code if there are multiple ffs
-ff1i=1.8 # Average value of ff1
-ff2i=1.4*100000000 # Average value of ff1
-s1=1
-s2=ff1i/ff2i
-w1=0.85 # Weight of ff1
-w2=0.15 # Weight of ff2
+
 
 
 def fitnessFunction(Inp):
@@ -131,6 +129,7 @@ def fitnessFunction(Inp):
     index=Inp[1]
     generation=Inp[2]
     # generation=Inp[2][0]
+    s2= Inp[3]
     rasaNumber=1
 
     rasas = ['Karuna', 'Shanta', 'Shringar', 'Veera']
@@ -150,6 +149,11 @@ def fitnessFunction(Inp):
     # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
 
     # return fitnessValue**2
+
+    # Use the below code if there are multiple ffs
+    s1=1
+    w1=0.85 # Weight of ff1
+    w2=0.15 # Weight of ff2
 
     return w1*s1*(fitnessValue**2)+w2*s2*Q(chromosome)
 
@@ -177,10 +181,10 @@ def chrm(new_or_cont, i):
     if new_or_cont==0:
 
         Rasas=[
-        np.random.randint(0, 17),
-        np.random.randint(17, 32),
-        np.random.randint(32, 47),
-        np.random.randint(47, 62)
+        rd.choice([0, 1, 2, 4]),
+        rd.choice([19, 23]),
+        rd.choice([33, 36, 37, 38, 39]),
+        rd.choice([47, 48, 49, 50, 51, 59])
         ]
 
         probabilities= [np.random.uniform(0.25, 0.75) for z in range(4)]
@@ -219,7 +223,7 @@ def popinit(new_or_cont):
     for i in range(Ps):
         Pop[i]=chrm(new_or_cont, i)
         
-    Inp=[[Pop[i], i, 0] for i in range(Ps)]
+    Inp=[[Pop[i], i, 0, 2/(1.4*100000000)] for i in range(Ps)]
     # Inp=[Pop[i] for i in range(Ps)]
 
     with Pool(processes= Pc) as pool:
@@ -262,7 +266,7 @@ def poprun(Inp):
     X= Inp[4][0][0]
     # 5) This is the fittest chromosome from the previous generation
        # It is used for Global search
-   
+    s2= Inp[5][0]
 
     for _ in range(20):
     # This is the maximum number of times the chromosome should be revaluated if it is out of bounds
@@ -360,7 +364,7 @@ def poprun(Inp):
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gn])
+    Temp=fitnessFunction([Tri, i, Gn, s2])
     # Temp=ff(Tri)
     # Temp is used here to reduce the number of fitness function calls
 
@@ -388,6 +392,7 @@ def loccro(Inp):
     Ind2=Inp[4][i-1]
 
     Fiti=Inp[3][Ind2]
+    s2= Inp[5][0]
 
 
     Cro=deepcopy(Pop[Ind1])
@@ -407,7 +412,7 @@ def loccro(Inp):
                 # Cro[j][k][0]= Cro[j][k][0]+R*(Pop[Ind2][j][k][0]-Cro[j][k][0])
 
 
-    Temp=fitnessFunction([Cro, i, Gn])
+    Temp=fitnessFunction([Cro, i, Gn, s2])
 
     if(Temp<=Fiti):
         return [Cro, Temp]
@@ -429,6 +434,7 @@ def locmut(Inp):
     Max=Inp[4][1]
     Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
     Cyc=Inp[4][3][0]
+    s2= Inp[5][0]
 
 
     Mut=deepcopy(Pop[i])
@@ -436,29 +442,28 @@ def locmut(Inp):
 
     for j in range(Cl):
         for k in range(Gl):
-            
-            R=rd.uniform(0,1)
-
             if j==0:
                 for l in range(2):
                 
+                    R=rd.uniform(0,1)
                     x=rd.randint(0,1)
 
                     if x==0:
                         Mut[j][k][l]+= R*Cyc*Pm*(Max[j][k][l]-Mut[j][k][l])
                     else:
-                        Mut[j][k][l]+= R*Cyc*Pm*(Min[j][k][l]-Mut[j][k][l])
+                        Mut[j][k][l]+= R*Cyc*Pm*(-Min[j][k][l]+Mut[j][k][l])
             
             else:
+                R=rd.uniform(0,1)
                 x=rd.randint(0,1)
 
                 if x==0:
                     Mut[j][k][0]+= R*Cyc*Pm*(Max[j][k][0]-Mut[j][k][0])
                 else:
-                    Mut[j][k][0]+= R*Cyc*Pm*(Min[j][k][0]-Mut[j][k][0])
+                    Mut[j][k][0]+= R*Cyc*Pm*(-Min[j][k][0]+Mut[j][k][0])
 
 
-    Temp=fitnessFunction([Mut, i, Gn])
+    Temp=fitnessFunction([Mut, i, Gn, s2])
 
     if(Temp<=Fiti):
         return [Mut, Temp]
@@ -474,6 +479,7 @@ def localsearch(Inp):
     Inp1= Inp[0]
     Inp2= Inp[1]
     Inp3= Inp[2]
+    
 
     i=Inp1[0]
     Pop=Inp1[2]
@@ -579,20 +585,20 @@ def main():
     # Generation Number
     # Counts down the generations
 
-
+    s2= [2/(1.4*100000000)]
     Best=[fittest()]
     Gen=[Gn,Gc]
-    Inp1=[[i, Gen, Pop, Fitness, Best] for i in range(0, Ps)]
+    Inp1=[[i, Gen, Pop, Fitness, Best, s2] for i in range(0, Ps)]
 
     Ind=[i for i in range(0, Ps)]
     Indsort=deepcopy(Ind)
-    Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps)]
+    Inp2=[[i, Gen, Pop, Fitness, Indsort, s2] for i in range(0, Ps)]
 
     Min=deepcopy(Pop[0])
     Max=deepcopy(Pop[0])
     Pm=[0]*Ps
     Cyc=[0]
-    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
+    Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc], s2] for i in range(0, Ps)]
 
     Inp=[[Inp1[i], Inp2[i], Inp3[i]] for i in range(Ps)]
 
@@ -607,7 +613,7 @@ def main():
         # The above line of code can be used to change the value of F progressively
 
         Gen[0]= Gn
-        Cyc[0]= np.exp(-2*Gn/Gc)* 1/(1+np.exp(-1*((Gc/2)-Gn)))
+        Cyc[0]= (np.exp(-2*Gn/Gc))/(1+np.exp(-1*((Gc/2)-Gn)))
 
 
         with Pool(processes= Pc) as pool:
@@ -669,10 +675,11 @@ def main():
         Qval.append(Temp[Best[0][0]])
         Qavg.append(sum(Temp)/Ps)
 
+        s2[0]= Afit[-1]/Qavg[-1]
+
         # AfitSOM.append(sum(FitnessSOM)/float(Ps))
         # BfitSOM.append(min(FitnessSOM))
         # QvalSOM.append(Q(Pop[FitnessSOM.index(BfitSOM[-1])]))
-
 
         if(Gn%5==0):
             plt.plot(range(0,len(Afit)), Afit, label="Avg Fitness")
@@ -725,11 +732,6 @@ def main():
 
 
 if __name__ == '__main__':
-
-    import os
-    # This library is used to create/check folders/directories
-    # creating output directories if they do not exist
-
 
     audioOutputPath = 'audio_output'
     featuresOutputPath = 'features_output'

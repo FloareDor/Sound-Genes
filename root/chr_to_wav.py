@@ -7,8 +7,6 @@ from scipy.io import wavfile
 
 from scipy.fft import ifft
 
-from os import chdir
-
 # My entire understanding of fft and hence ifft comes from this source:-
 # http://howthefouriertransformworks.com/understanding-the-output-of-an-fft/
 

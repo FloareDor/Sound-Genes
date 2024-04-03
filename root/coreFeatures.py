@@ -13,5 +13,3 @@ extra_features_to_drop = ['Magnitude Spectrum Overall Average',
 
 zero_features = ['Standard Deviation of MFCC Overall Standard Deviation', 'Derivative of Standard Deviation of MFCC Overall Standard Deviation', 'Derivative of Standard Deviation of LPC Overall Standard Deviation',
 				 'Derivative of Strongest Frequency Via Zero Crossings Overall Average', 'Derivative of Strongest Frequency Via Spectral Centroid Overall Average', 'Standard Deviation of MFCC Overall Average']
-
-print(len(coreFeatures))
