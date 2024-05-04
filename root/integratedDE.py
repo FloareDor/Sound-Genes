@@ -182,10 +182,10 @@ def chrm(new_or_cont, i):
     if new_or_cont==0:
 
         Rasas=[
-        np.random.randint(0, 17),
-        np.random.randint(17, 32),
-        np.random.randint(32, 47),
-        np.random.randint(47, 62)
+        rd.choice([0, 1, 2, 4]),
+        rd.choice([19, 23]),
+        rd.choice([33, 36, 37, 38, 39]),
+        rd.choice([47, 48, 49, 50, 51, 59])
         ]
 
         probabilities= [np.random.uniform(0.25, 0.75) for z in range(4)]

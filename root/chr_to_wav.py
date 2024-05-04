@@ -120,6 +120,8 @@ def frame_to_wav(F, Srate, SperF):
 
     Wf=ifft(Wf)
 
+    Wf=20000000*Wf
+
     Wf=np.array(Wf, dtype="int16")
     # Find the inverse fourier transform of this frame
 

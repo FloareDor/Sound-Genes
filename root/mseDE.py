@@ -16,15 +16,15 @@ A= 10
 # Amplitude
 # This is the maximum amplitude or loudness
 
-Cp= 0.95
+Cp= 0.9
 # Crossover Probability
 # This is the amount of crossover between the original vector and the mutant
     # vector used to create the trial vector
 
-K=0.5
+K=0.7
 # Coefficient used to generate the mutant vector
 
-Fr=[4]
+Fr=[3]
 # Coefficient used to generate the mutant vector
 
 Gc= 50
@@ -37,14 +37,19 @@ Gc= 50
 Ps= 5
 # Population Size
 
-Gs= 2
+Gs= 11
 # Generation Size
 
-new_or_cont= 1
+new_or_cont= 0
 
 Lt= 0
 # Local Search Threshold
 # Above this value, the search will incorporate local search as well
+
+St= 6
+# State Variable
+# Before this generation, DE will operate on twice compressed chromosomes.
+# Beyond it, DE will operate on only once compressed chromosomes.
 
 
 ### MULTIPROCESSING ARGUMENTS
@@ -59,6 +64,10 @@ Ch= 1
 
 
 ### MUSIC PARAMETERS
+
+Cp= 10
+# Compression Parameter
+# This is the number of bins to be compressed into one bin in after compression.
 
 Cl= 1
 # Chromosome Length
@@ -92,22 +101,7 @@ Srate=round(16000/Frl)
     # times. (In my opinion this does not work and it should just be 16000)
 
 
-
 ### FITNESS AND VALIDATION
-
-from som.som_class import SOM
-
-som = SOM()
-# Initialization of Self-Organizing-Map
-
-# Use the below code if there are multiple ffs
-ff1i=1.35 # Average value of ff1
-ff2i=6.4*10000000 # Average value of ff1
-s1=1
-s2=ff1i/ff2i
-w1=0.85 # Weight of ff1
-w2=0.15 # Weight of ff2
-
 
 def fitnessFunction(Inp):
     """
@@ -126,10 +120,6 @@ def fitnessFunction(Inp):
     from chr_to_wav import decode
     # This is the function that converts chromosomes to wav files.
 
-    from driver import computeFitnessValues, compute_SOM_DOB
-    # This is the fitness function that utilizes 5 features from set A and another 5 from set B
-
-
     chromosome=Inp[0]
     index=Inp[1]
     generation=Inp[2]
@@ -144,16 +134,7 @@ def fitnessFunction(Inp):
 
     decode(chromosome_copy, index=index, generation=generation, Minfrq=Minfrq, Maxfrq=Maxfrq, Cl=Cl, Gl=Gl, Wpb=Wpb, TS=Srate*60, Srate=Srate)
 
-    rasaDob = compute_SOM_DOB(SOM=som,audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index)
-    fitnessValue = rasaDob[rasaNumber]
-    print("rasaDOB: ",rasaDob)
-
-    # values = dict(computeFitnessValues(rasaNumber=rasaNumber, audioFile=f"gen{generation}-{index}.wav", generation=generation, populationNumber=index))
-    # fitnessValue = float(values["fitnessValues"][rasas[rasaNumber-1]]["weightedSum"])
-
-    qValue= Q(chromosome)
-
-    return [w1*s1*(fitnessValue**2)+w2*s2*qValue, fitnessValue, qValue]
+    return
 
 
 def Q(L):
@@ -161,7 +142,7 @@ def Q(L):
     sum= 0
 
     for j in range(Cl):
-        for k in range(Gl-1):
+        for k in range(L.shape[1]-1):
 
             sum+= abs(L[j][k][0]-L[j][k+1][0])
 
@@ -169,6 +150,25 @@ def Q(L):
             sum+=abs(L[j][0][0]-L[j+1][k-1][0])
 
     return sum/2000
+
+
+def ff(Inp):
+
+    L=Inp[0]
+    Gn=Inp[2]
+
+    if Gn< St:
+        Test= np.load(f'./initial_chromosomes/L1000cc.npz')
+        Test=Test['arr_0']
+    else:
+        Test= np.load(f'./initial_chromosomes/L1000c.npz')
+        Test=Test['arr_0']
+
+    if Gn>=Gs:
+        Test= np.load(f'./initial_chromosomes/L1000.npz')
+        Test=Test['arr_0']
+
+    return [np.mean(np.square(Test-L)), 0, Q(L)]
 
 
 ### ASSISTING FUNCTIONS
@@ -212,6 +212,94 @@ def chrm(new_or_cont, i):
         return L
 
 
+def encoder(L, compression):
+    '''
+    Takes a chromosome L and returns a compressed version where every k bins are averaged
+    to one bin. k= Compression in input.
+    '''
+
+    T=[]
+    
+    for i in range(Cl):
+        T.append([])
+
+        for j in range(0, L.shape[1], compression):
+            T[i].append(np.average(L[0][j:j+10], axis=0))
+
+    T=np.array(T)
+
+    return T
+
+def distribution(Initial, compression, Final):
+    '''
+    Takes a chromosome L and returns the distribution of the chromosome.
+    Eg. If 10 bins are compressed to 1 bin using an average, then the distribution vector
+    will be a 10 size vector where each element is the difference between the original
+    chromosome and the mean.
+    '''
+    T= []
+    
+    for i in range(Cl):
+        T.append([])
+
+        for j in range(0, Final.shape[1]):
+            for k in range(compression):
+                T[i].append(Initial[i][j*compression+k]-Final[i][j])
+
+    T=np.array(T)
+
+    return T
+
+def decoder(L, compression, Distribution):
+    '''
+    Takes a chromosome L and returns a decompressed version where every bin is expanded to
+    k bins using the distribution.
+    '''
+    T=[]
+    
+    for i in range(Cl):
+        T.append([])
+
+        for j in range(0, L.shape[1]):
+            for k in range(compression):
+
+                T[i].append(L[i][j]+Distribution[i][j*compression+k])
+
+    T=np.array(T)
+
+    return T
+
+def encodeRoutine(callno):
+
+    if callno==1:
+        Test= np.load(f'./initial_chromosomes/L1000.npz')
+        Test=Test['arr_0']
+    else:
+        Test= np.load(f'./initial_chromosomes/L1000c.npz')
+        Test=Test['arr_0']
+
+    Testcompressed= encoder(Test, compression=Cp)
+
+    if callno==1:
+        np.savez_compressed(f"./initial_chromosomes/L1000c.npz", Testcompressed)
+    else:
+        np.savez_compressed(f"./initial_chromosomes/L1000cc.npz", Testcompressed)
+
+    Distribution= distribution(Test, Cp, Testcompressed)
+
+
+    for i in range(Ps):
+        Pop[i]= encoder(Pop[i], compression= Cp)
+
+    return Distribution
+
+def decodeRoutine(Distribution):
+
+    for i in range(Ps):
+        Pop[i]= decoder(Pop[i], compression= Cp, Distribution= Distribution)
+
+    return
+
 
 def popinit(new_or_cont):
 # Population Initiator
@@ -221,12 +309,15 @@ def popinit(new_or_cont):
 
     for i in range(Ps):
         Pop[i]=chrm(new_or_cont, i)
+
+    Distributionc= encodeRoutine(1)
+    Distributioncc= encodeRoutine(2)
         
     Inp=[[Pop[i], i, 0] for i in range(Ps)]
 
     with Pool(processes= Pc) as pool:
 
-        result = pool.map_async(fitnessFunction, Inp, chunksize= Ch)
+        result = pool.map_async(ff, Inp, chunksize= Ch)
 
         for Out in result.get():
             Fitness.append(Out[0])
@@ -235,7 +326,7 @@ def popinit(new_or_cont):
 
     # Every element in Pop is a Chromosome indexed from an integer from 0 to Ps
 
-    return Pop
+    return [Distributionc, Distributioncc]
 
 
 def fittest():
@@ -303,7 +394,7 @@ def poprun(Inp):
         Temp= 0
 
         for j in range(Cl):
-            for k in range(Gl):
+            for k in range(Local_Copy.shape[1]):
 
                 if j==0:
                     for l in range(2):
@@ -352,7 +443,7 @@ def poprun(Inp):
 
     if Temp!=0:
         for j in range(Cl):
-            for k in range(Gl):
+            for k in range(Local_Copy.shape[1]):
 
                 if (Tri[j][k][0]> A or Tri[j][k][0]<0):
 
@@ -366,7 +457,7 @@ def poprun(Inp):
     # If a component of the Trial Vector is Violating a constraint, replace
         # that component with that of the population member
 
-    Temp=fitnessFunction([Tri, i, Gn])
+    Temp=ff([Tri, i, Gn])
     # Temp=ff(Tri)
     # Temp is used here to reduce the number of fitness function calls
 
@@ -398,12 +489,12 @@ def loccro(Inp):
 
     Cro=deepcopy(Pop[Ind1])
 
-    R=rd.uniform(0,1.25)
+    R=rd.uniform(0,1)
 
     Cro+= R*(Pop[Ind2]-Cro)
 
 
-    Temp=fitnessFunction([Cro, i, Gn])
+    Temp=ff([Cro, i, Gn])
 
     if(Temp[0]<=Fiti):
         return [Cro, Temp]
@@ -421,8 +512,8 @@ def locmut(Inp):
     Gn=Inp[1][0]
     Pop=Inp[2]
     Fiti=Inp[3][i]
-    Min=Inp[4][0]
-    Max=Inp[4][1]
+    Min=Inp[4][0][0]
+    Max=Inp[4][1][0]
     Pm=Inp[4][2][i] # This is ready for multiplication, not done n-i way.
     Cyc=Inp[4][3][0]
 
@@ -431,7 +522,7 @@ def locmut(Inp):
 
 
     for j in range(Cl):
-        for k in range(Gl):
+        for k in range(Mut.shape[1]):
             
             R=rd.uniform(0,1)
 
@@ -454,7 +545,7 @@ def locmut(Inp):
                     Mut[j][k][0]+= R*Cyc*Pm*(-Min[j][k][0]+Mut[j][k][0])
 
 
-    Temp=fitnessFunction([Mut, i, Gn])
+    Temp=ff([Mut, i, Gn])
 
     if(Temp[0]<=Fiti):
         return [Mut, Temp]
@@ -493,10 +584,6 @@ def localsearch(Inp):
             Fitness[Indsort[i]]=Out[1][0]
             SFitness[Indsort[i]]=Out[1][1]
             QFitness[Indsort[i]]=Out[1][2]
-                    
-        if i!=0:
-            os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
-            os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
 
 
         Out= locmut(Inp3)
@@ -509,10 +596,6 @@ def localsearch(Inp):
             QFitness[i]=Out[1][2]
 
 
-        os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
-        os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
-
-
     Out= poprun(Inp1)
     if Out!=0:
 
@@ -521,8 +604,6 @@ def localsearch(Inp):
         Fitness[i]=Out[1][0]
         SFitness[i]=Out[1][1]
         QFitness[i]=Out[1][2]
-
-
 
     return
 
@@ -585,7 +666,9 @@ def main():
     Qavg=[]
 
 
-    popinit(new_or_cont)
+    Out=popinit(new_or_cont)
+    Distributionc= Out[0]
+    Distributioncc= Out[1]
     # Initiate and store the Population Dictionary
     
 
@@ -602,8 +685,8 @@ def main():
     Indsort=deepcopy(Ind)
     Inp2=[[i, Gen, Pop, Fitness, Indsort] for i in range(0, Ps)]
 
-    Min=deepcopy(Pop[0])
-    Max=deepcopy(Pop[0])
+    Min=[deepcopy(Pop[0])]
+    Max=[deepcopy(Pop[0])]
     Pm=[0]*Ps
     Cyc=[0]
     Inp3=[[i, Gen, Pop, Fitness, [Min, Max, Pm, Cyc]] for i in range(0, Ps)]
@@ -616,12 +699,15 @@ def main():
 
     while Gn<Gs:
         Gn=Gn+1
-
-    # Run the while loop Gs times
-    # This imitates Gs Generations of Evolution
-
+        print("Gen: ", Gn)
         Gen[0]= Gn
         Cyc[0]= np.exp(-2*(Gn%Gc)/Gc)* 1/(1+np.exp(-1*((Gc/2)-(Gn%Gc))))
+
+
+        if Gn==St:
+            decodeRoutine(Distributioncc)
+        if Gn== Gs:
+            decodeRoutine(Distributionc)
 
 
         with Pool(processes= Pc) as pool:
@@ -638,39 +724,43 @@ def main():
 
                     Pm[Temp[i]]=i/Ps
 
-                if Gn%10==1:
+                if Gn%10==1 or Gn==St or Gn==Gs-1:
 
                     Popcopy=deepcopy(Pop)
 
+                    if Gn==St or Gn==Gs:
+                        Min[0]=deepcopy(Pop[0])
+                        Max[0]=deepcopy(Pop[0])
+
                     for i in range(Ps):
                         for j in range(Cl):
-                            for k in range(Gl):
+                            for k in range(Popcopy[0].shape[1]):
 
                                 if i==0:
                                     if j==0:
                                         for l in range(2):
-                                            Min[j][k][l]= Popcopy[i][j][k][l]
-                                            Max[j][k][l]= Popcopy[i][j][k][l]
+                                            Min[0][j][k][l]= Popcopy[i][j][k][l]
+                                            Max[0][j][k][l]= Popcopy[i][j][k][l]
 
                                     else:
-                                        Min[j][k][0]= Popcopy[i][j][k][0]                               
-                                        Max[j][k][0]= Popcopy[i][j][k][0]
+                                        Min[0][j][k][0]= Popcopy[i][j][k][0]                               
+                                        Max[0][j][k][0]= Popcopy[i][j][k][0]
 
 
                                 if j==0:
                                     for l in range(2):
-                                        if (Popcopy[i][j][k][l]<Min[j][k][l]):
-                                            Min[j][k][l]= Popcopy[i][j][k][l]
+                                        if (Popcopy[i][j][k][l]<Min[0][j][k][l]):
+                                            Min[0][j][k][l]= Popcopy[i][j][k][l]
                         
-                                        elif(Popcopy[i][j][k][l]>Max[j][k][l]):
-                                            Max[j][k][l]= Popcopy[i][j][k][l]
+                                        elif(Popcopy[i][j][k][l]>Max[0][j][k][l]):
+                                            Max[0][j][k][l]= Popcopy[i][j][k][l]
 
                                 else:
-                                    if (Popcopy[i][j][k][0]<Min[j][k][0]):
-                                        Min[j][k][0]= Popcopy[i][j][k][0]
+                                    if (Popcopy[i][j][k][0]<Min[0][j][k][0]):
+                                        Min[0][j][k][0]= Popcopy[i][j][k][0]
                         
-                                    elif(Popcopy[i][j][k][0]>Max[j][k][0]):
-                                        Max[j][k][0]= Popcopy[i][j][k][0]
+                                    elif(Popcopy[i][j][k][0]>Max[0][j][k][0]):
+                                        Max[0][j][k][0]= Popcopy[i][j][k][0]
 
             result = pool.map_async(localsearch, Inp, chunksize= Ch)
             # For every population member, initiate poprun with parallel processing
@@ -717,23 +807,27 @@ def main():
                     print(Qavg[i], file=f, end="\n")
 
 
-            if (Gn%50==0):
+            if (Gn%10==0):
+                if Gn<St:
+                    decodeRoutine(Distributioncc)
+                    decodeRoutine(Distributionc)
+                else:
+                    decodeRoutine(Distributionc)
+
                 for i in range(Ps):
+
                     Array= np.array(Pop[i], dtype="float32")
                     np.savez_compressed(f"./final_chromosomes/L{i}.npz", Array)
 
-        if Gn!=Gs: 
-            for i in range(Ps):
+                    if i==Best[0][0]:
+                        fitnessFunction([Pop[Best[0][0]], 1000, Gn])
 
-                if Gn%50==0 and i==Best[0][0]:
-                    fitnessFunction([Pop[Best[0][0]], 1000, Gn])
-
-                    continue
-
-                os.remove(f'./audio_output/gen{Gn}-{i}.wav')
-                os.remove(f'./jAudio/gen{Gn}-{i}FV.xml')
-                os.remove(f'./jAudio/gen{Gn}-{i}FK.xml')
-                os.remove(f'./features_output/gen{Gn}-{i}_all_features.json')
+                if Gn<St:
+                    encodeRoutine(1)
+                    encodeRoutine(2)
+                else:
+                    encodeRoutine(2)
+                
 
 
     for i in range(Ps):
