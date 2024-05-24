@@ -398,7 +398,7 @@ def loccro(Inp):
 
     Cro=deepcopy(Pop[Ind1])
 
-    R=rd.uniform(0,1.25)
+    R=rd.uniform(0,1)
 
     Cro+= R*(Pop[Ind2]-Cro)
 
