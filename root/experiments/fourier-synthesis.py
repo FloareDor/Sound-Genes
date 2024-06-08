@@ -111,16 +111,17 @@ def wav_to_chromosome(BASE_FOLDER, sample_song, phase_type="original", sampling_
                 # bin = [[magnitude_spectrum[k], phase_values[k]]for k in range(j-waves_per_bin+1, j+1)] # original magnitudes and phases
                 if phase_type == "original" or phase_type == "avg_across_frames":
                     bin = [[magnitude_avg, phase_values[k]]for k in range(j-waves_per_bin+1, j+1)] # avg magnitudes per bin, same phase values
-                if phase_type == "first_STTF":
+                elif phase_type == "first_STTF":
                     bin = [[magnitude_avg, phase_room[k]] for k in range(j-waves_per_bin+1, j+1)]
-                if phase_type == "avg_per_frame":
+                elif phase_type == "avg_per_frame":
                     bin = [[magnitude_avg, phase_avg]for _ in range(j-waves_per_bin+1, j+1)]
                 frame.append(bin)
                 bin = []
 
         frame.append(bin)
         bin = []
-    
+        chromosome.append(frame)
+    print(len(chromosome))
     return chromosome, song, sr
     
 def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
@@ -169,7 +170,7 @@ def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
         inverse_X = np.fft.ifft(X_reconstructed)
         concatenated_audio = np.concatenate((concatenated_audio, inverse_X.real))
         
-    output_path = f"output-avg_magnitudes-avg-phases-across-frames-wpb-{waves_per_bin}.wav"
+    output_path = f"output-phase_ype-{phase_type}-wpb-{waves_per_bin}.wav"
 
     sf.write(output_path, concatenated_audio, sr, 'PCM_24')
 
@@ -180,7 +181,7 @@ def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
 
 if __name__ == "__main__":
     BASE_FOLDER = 'E:\\RESEARCH\\UFL Sound Genes\\sampling-rate\\dataset'
-    sample_song = 'Shringar\\S_9.wav'
+    sample_song = 'Shringar\\S_3.wav'
 
     '''
     phase_types = [
@@ -192,9 +193,9 @@ if __name__ == "__main__":
     '''
 
     segment_duration = 0.5  # Duration of each Short Term Time Frame (STTF) in seconds
-    waves_per_bin = 25
+    waves_per_bin = 4
     phase_type = 'original'
 
-    chromosome, song, sr = wav_to_chromosome(BASE_FOLDER, sample_song, phase_type=phase_type)
+    chromosome, song, sr = wav_to_chromosome(BASE_FOLDER, sample_song, phase_type=phase_type, segment_duration=0.5, waves_per_bin=25)
     ifft_on_chromosome(chromosome, sr, song, phase_type=phase_type)
     print("Done!")
