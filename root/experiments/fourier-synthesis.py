@@ -94,9 +94,8 @@ def wav_to_chromosome(BASE_FOLDER, sample_song, phase_type="original", sampling_
         bin = []
         magnitude_sum = 0
         phase_sum = 0
-        for j in range(len(magnitude_spectrum)):
+        for j in range(((len(magnitude_spectrum))//2) + waves_per_bin):
             phase_room.append(phase_values[j])
-
             if i == 0:
                 phase_room.append(phase_values[j])
 
@@ -124,7 +123,7 @@ def wav_to_chromosome(BASE_FOLDER, sample_song, phase_type="original", sampling_
     print(len(chromosome))
     return chromosome, song, sr
     
-def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
+def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original", waves_per_bin=25):
     """
     Performs Inverse Fast Fourier Transform (IFFT) on the chromosome representation to reconstruct the audio.
     
@@ -147,13 +146,22 @@ def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
             reconstructed_magnitude.extend([value[0] for value in bin])
             reconstructed_phase.extend([value[1] for value in bin])
         
+        print("len(before_mag)", len(reconstructed_magnitude))
+        n = len(reconstructed_magnitude) - waves_per_bin
+        print("half_n:", half_n)
+
+        reconstructed_phase = np.array(reconstructed_phase)
+
         # Reverse the reconstructed magnitude and phase values
-        # reconstructed_magnitude_reverse = reconstructed_magnitude[::-1]
-        # reconstructed_phase_reverse = reconstructed_phase[::-1]
+        reconstructed_magnitude_reverse = reconstructed_magnitude[n-1:0:-1]
+        reconstructed_phase_reverse = -reconstructed_phase[n-1:0:-1]
+
+        reconstructed_magnitude = reconstructed_magnitude[0:n+1]
+        reconstructed_phase = reconstructed_phase[0:n+1]
 
         # Reversing does not work properly, so I just made it empty.
-        reconstructed_magnitude_reverse = []
-        reconstructed_phase_reverse = []
+        # reconstructed_magnitude_reverse = []
+        # reconstructed_phase_reverse = []
 
         if phase_type == "avg_across_frames":
             reconstructed_phase = []
@@ -164,13 +172,15 @@ def ifft_on_chromosome(chromosome, sr, song=None, phase_type="original"):
         full_magnitude = np.concatenate((reconstructed_magnitude, reconstructed_magnitude_reverse))
         full_phase = np.concatenate((reconstructed_phase, reconstructed_phase_reverse))
 
+        print("len(mag)", len(full_magnitude))
+
         # Reconstruct the complex numbers for IFFT
         X_reconstructed = full_magnitude * np.exp(1j * full_phase)
         
         inverse_X = np.fft.ifft(X_reconstructed)
         concatenated_audio = np.concatenate((concatenated_audio, inverse_X.real))
         
-    output_path = f"output-phase_ype-{phase_type}-wpb-{waves_per_bin}.wav"
+    output_path = f"reverse-output-phase_ype-{phase_type}-wpb-{waves_per_bin}.wav"
 
     sf.write(output_path, concatenated_audio, sr, 'PCM_24')
 
@@ -193,9 +203,9 @@ if __name__ == "__main__":
     '''
 
     segment_duration = 0.5  # Duration of each Short Term Time Frame (STTF) in seconds
-    waves_per_bin = 4
+    waves_per_bin = 2
     phase_type = 'original'
 
-    chromosome, song, sr = wav_to_chromosome(BASE_FOLDER, sample_song, phase_type=phase_type, segment_duration=0.5, waves_per_bin=25)
-    ifft_on_chromosome(chromosome, sr, song, phase_type=phase_type)
+    chromosome, song, sr = wav_to_chromosome(BASE_FOLDER, sample_song, phase_type=phase_type, segment_duration=0.5, waves_per_bin=waves_per_bin)
+    ifft_on_chromosome(chromosome, sr, song, phase_type=phase_type, waves_per_bin=waves_per_bin)
     print("Done!")
